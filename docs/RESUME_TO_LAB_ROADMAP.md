@@ -243,3 +243,40 @@ Each scenario must be reproducible and safe. Start from observed evidence, chang
 - Behavioral/ownership: preparation, coordination, disagreement, escalation, learning from an incident, prioritization, and measurable evidence; use truthful examples from verified experience and the lab.
 
 No finite video list guarantees passing every interview. References prepare each day's work; the mastery evidence is that you can rebuild it, debug it under a scenario, explain alternatives, and answer follow-ups without relying on memorized scripts.
+
+
+## Preparation for similar mid-level SRE and DevOps job descriptions
+
+Use each job description as a coverage checklist. Resume-aligned subjects remain the core curriculum; the additional subjects below extend that curriculum to comparable roles. For each requirement, prepare to describe the design, implement a lab-sized version where practical, operate it, troubleshoot a failure, and explain trade-offs.
+
+### Core responsibilities and evidence
+
+- **End-to-end delivery pipelines:** build and troubleshoot Jenkins Declarative and GitHub Actions pipelines for compile/test, quality and security gates, image publication, deployment approval, health verification, and rollback. Compare AWS CodePipeline and GitLab CI by mapping their stages, credentials, artifacts, permissions, and failure handling.
+- **Multi-account AWS and Terraform:** build reusable modules and environment roots; understand account boundaries, role assumption, provider aliases, least privilege, remote state per environment, locking, state recovery, drift, module versioning, plan review, and teardown. If multiple personal accounts are unavailable, demonstrate the account-boundary design with isolated configurations and test plans; do not create accounts or incur charges just for the exercise.
+- **AWS services:** include EC2, VPC, S3, RDS, IAM, Route 53, Lambda, ECR, ECS, EKS, CloudWatch, CloudTrail, SQS, and Elastic Disaster Recovery (DRS) concepts. For every service, explain its job, identity/network path, failure signals, security boundaries, cost drivers, and cleanup.
+- **Containers and compute choices:** build Docker images; deploy the same application to local Kubernetes/EKS and ECS, including Fargate task/service concepts. Compare scheduling, scaling, networking, IAM, health checks, rollout, logs, costs, and operational responsibility. Use local labs first and only create cloud capacity for a bounded, cost-reviewed exercise.
+- **Kubernetes service mesh:** learn Istio concepts—sidecars/data plane and control plane, traffic routing, retries/timeouts, circuit-breaking concepts, mTLS, identity/policy, telemetry, and mesh failure modes. Practice on a local cluster before considering managed cloud deployment; explain when a mesh adds enough value to justify its complexity.
+- **Observability and governance:** build dashboards and actionable alerts using Prometheus/Grafana and CloudWatch; instrument with OpenTelemetry; practice Datadog and Splunk query/dashboard concepts where access exists. Add CloudTrail audit-event investigation, identity/change correlation, retention/access boundaries, and evidence handling. AppDynamics is a comparative APM vocabulary exercise if no lab access exists.
+- **Reliability and recovery:** define SLIs/SLOs/error-budget policy, multi-AZ availability, autoscaling bounds, health checks, safe rollback, backup/restore, RTO/RPO, and game-day procedures. For AWS DRS, be able to explain source/staging/target roles, readiness checks, drill vs recovery, failover/failback, validation, ownership, and cost. Only execute a real recovery drill in a personal environment with an explicit cost plan; otherwise use a tabletop and local fault-injection simulation.
+- **Automation and toil reduction:** keep a toil register; select repetitive, error-prone operational work; automate with Bash/Python/Ansible (and PowerShell where relevant); add input validation, idempotency, logging, least privilege, dry-run/check mode, tests, safe rollback, and measured before/after effort or risk.
+- **Data and API plus-skills:** strengthen SQL query plans, indexes, transactions, connection pools, and query optimization using PostgreSQL. Learn PL/SQL syntax and Oracle-specific troubleshooting as a comparison if the role requires it. Compare Apigee/API gateway capabilities—authentication, quotas, routing, policies, analytics, and failure behavior—with the lab's API ingress/gateway; enterprise access is not assumed.
+- **CloudFormation and IaC choices:** implement or read a small CloudFormation stack and compare it with the equivalent Terraform module: state model, drift, reuse, change preview, secrets, rollback, and team workflow. Ansible stays the configuration-management track for host baselines and repeatable recovery.
+- **Advanced operations foundation:** deepen Linux process, memory, storage, systemd, networking, TLS, DNS, permissions, and performance diagnosis. Write tested Bash/Python utilities and practice PowerShell command/service/log diagnostics when the target role uses Windows.
+
+### Job-description scenario drills
+
+- Pipeline: deployment is green but the service is unhealthy; find the missing gate, use the prior artifact, roll back, and show recovery.
+- Terraform: a shared module change affects several environments; review the plan, isolate state, protect production data, and recover safely from a lock or partial apply.
+- Multi-account AWS: a workload cannot read its bucket or assume its deployment role; trace caller identity, trust policy, permissions, region, endpoint, and audit event.
+- EKS/ECS: pods or tasks fail readiness, cannot pull an image, lack permissions, or scale beyond DB capacity; diagnose the relevant scheduler, network, identity, and service signals.
+- Istio: mTLS policy or retry behavior causes elevated latency/5xx; isolate control-plane/data-plane configuration, prevent retry amplification, and roll back safely.
+- Observability/governance: a change preceded an outage; correlate deployment, CloudTrail, application metrics, traces, logs, and user impact while protecting sensitive data.
+- SLO/DR: availability is degrading or a region is unavailable; declare impact, use the recovery objective, choose rollback/failover, validate data and service health, and communicate status.
+- Toil: a recurring manual task causes delays or configuration drift; quantify the problem, automate with guardrails, test failure paths, and measure the improvement.
+- Database/API: latency rises after traffic growth; use query plans, pool metrics, traces, and API gateway signals to find and verify the bottleneck.
+
+### Interview simulation for this role profile
+
+We will rotate through resume deep-dive, Linux/scripting, AWS networking/IAM, Terraform module/state design, CI/CD release, Docker/EKS/ECS/Istio, observability/SLO, incident/DR, system design, and behavioral/ownership rounds. Some sessions will be a timed live-debugging exercise; others will require a whiteboard explanation, command-writing, or a design review. Follow-ups will test alternatives, failure handling, security, cost, and what evidence proves the result.
+
+A topic is interview-ready when you can explain it from memory, build or inspect the lab implementation, diagnose a new failure from evidence, state a safe recovery and trade-offs, and answer follow-up questions. For tools that are optional, proprietary, or expensive, be clear about what you implemented hands-on and what you learned comparatively.
