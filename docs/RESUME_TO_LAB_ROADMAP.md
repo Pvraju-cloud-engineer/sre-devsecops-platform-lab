@@ -131,3 +131,115 @@ Each docs/days/PROJECT_DAY_NN.md should include assignment, video/reference link
 ## Completion standard
 
 A topic is learned when you can explain it without notes, build or change it from a clean checkout, verify expected behavior, diagnose a controlled failure from evidence, recover safely, write/update an operator runbook, discuss trade-offs, and answer follow-up interview questions. We will mark each resume topic as planned, in progress, practiced, or demonstrated; the roadmap itself is not evidence that a capability has been implemented.
+
+
+## Mastery and interview practice standard
+
+The goal is to build, operate, explain, and troubleshoot the resume-aligned systems from a clean start. We will study the real patterns in the resume and reproduce them at lab scale; every capability stays marked planned, in progress, practiced, or demonstrated until the code, commands, and evidence support the mark.
+
+### Required daily practice
+
+Every `docs/days/PROJECT_DAY_NN.md` must contain:
+
+1. Resume skill and subtopics covered today, with a link to the reference videos or official documentation watched before the assignment.
+2. Work ticket: user or business impact, scope, acceptance criteria, security and cost boundaries, rollback, and handoff.
+3. Architecture and request/data flow; files changed and the reason for each.
+4. Commands and expected meaning, followed by actual output or a clear note that a step was not run.
+5. Verification: tests, health checks, dashboards, logs, traces, or cloud state that prove the result.
+6. At least one safe failure drill, with symptoms, evidence collected, hypotheses, diagnostic steps, root cause, mitigation, recovery proof, and follow-up action. The number and difficulty of drills grow as the platform grows.
+7. Interview practice: 5 recall questions from prior days, 3 fundamentals for today's topic, 2 troubleshooting/scenario questions, 1 design/trade-off question, and 1 ownership/communication question. Write answers in your own words and tie them to the lab evidence.
+8. Cost/security review, cleanup/decommission evidence, status of each skill, and next-day handoff.
+
+Use this answer pattern: clarify impact and scope; explain the system path; identify signals and commands; separate facts from hypotheses; state the safest mitigation; prove recovery; explain prevention and trade-offs. For experience questions, describe your role and decisions accurately and use only evidence produced in the lab or verified from your own work history.
+
+### Full topic and subtopic checklist
+
+#### Linux, operating systems, networking, and scripting
+
+- Linux filesystem, permissions, users/groups, sudo, processes, signals, services/systemd, packages, environment, cron, logs/journald, file descriptors, sockets, CPU, memory, swap, disk, inode, and limits.
+- Shell/Bash quoting, pipes, redirection, exit codes, loops, functions, traps, safe scripting, text tools, SSH, and command-line diagnostics.
+- Python for APIs, JSON/YAML, files, subprocesses, retries/timeouts, logging, tests, and safe automation.
+- DNS, TCP handshake, routing, subnet/CIDR, ports, firewalls/security groups, HTTP methods/status codes/headers, TLS certificates/handshake, proxies, load balancers, connection timeouts, and packet/request flow.
+- Windows service/process/event-log/network diagnostics where relevant to the resume.
+
+#### Java, Spring Boot, APIs, and data
+
+- Java runtime/JVM memory model at an operator level, heap vs non-heap, garbage collection, thread pools, deadlocks, heap/thread dumps, startup flags, and container-aware resource sizing.
+- Maven Wrapper, `pom.xml`, dependency scopes, lifecycle, plugins, profiles, reproducible builds, tests, packaging, and dependency troubleshooting.
+- Spring Boot configuration precedence, profiles, dependency injection, controller/service/repository boundaries, REST/JSON, validation, exception handling, status codes, Actuator health/readiness/liveness, logging, and graceful shutdown.
+- PostgreSQL schemas, tables, indexes, constraints, transactions, isolation, migrations, connection pools, locks, query plans, backups/restores, credentials, and failure diagnosis.
+- Multi-tenancy: shared tables with tenant keys vs schema-per-tenant vs database-per-tenant; authenticated tenant context; authorization vs identity; isolation on every query and background job; PostgreSQL RLS; pooled-connection context reset; cross-tenant negative tests; migrations; tenant onboarding/offboarding; retention/export/deletion; audit/support access; quotas and noisy-neighbor controls.
+
+#### Docker, supply chain, and DevSecOps
+
+- Image/layer/container model, build context, `.dockerignore`, multi-stage builds, non-root runtime, minimal base images, ports, health checks, signals, volumes, networks, resource limits, tags/digests, registry authentication, and image rollback.
+- SonarQube quality gates, Trivy source/dependency/image scanning, CVE triage, SBOM, secret scanning, remediation, false positives, patch cadence, and artifact provenance.
+- Secret handling, least privilege, IAM/RBAC, encryption in transit/at rest, dependency pinning, audit evidence, and secure defaults.
+
+#### CI/CD, release, and GitOps
+
+- Git fundamentals, branches, commits, pull requests, reviews, conflict resolution, tags, release notes, and rollback commits.
+- Declarative Jenkinsfile: stages, agents, environment, credentials binding, artifacts, test reports, approvals, parallel work, failure handling, and workspace cleanup.
+- GitHub Actions: workflow triggers, jobs/steps, permissions, secrets, artifacts, caching, environment protection, and pipeline debugging.
+- Build-once/promote-same-artifact, versioning, deployment strategies, health gates, change records, separation of duties, rollback criteria, and release verification.
+- Helm chart structure, values, templates, upgrades, rollback; Argo CD desired state, reconciliation, sync health, drift, self-heal, and safe promotion.
+
+#### AWS, Terraform, and cloud foundations
+
+- IAM users/roles/policies, trust policies, STS, least privilege, VPC, CIDR, public/private subnets, route tables, internet/NAT gateways, DNS, security groups/NACLs, endpoints, and load balancers.
+- EC2, ECR, S3, RDS PostgreSQL, ECS, EKS, CloudWatch, SQS, KMS, secrets, logs/metrics, backups, and cost dimensions used by the lab.
+- Terraform providers/resources/data/modules/variables/outputs, formatting/validation/plan/apply/destroy, state, remote S3 backend and locking, state sensitivity, imports, drift, dependency graphs, workspaces/environment separation, module versioning, and recovery from interrupted changes.
+- AWS budgets/alerts, tags, region/account boundaries, shared responsibility, quota checks, free-tier limits, cost estimates, orphan detection, and teardown verification.
+
+#### Kubernetes, containers, and platform operations
+
+- Cluster/control plane/node/pod architecture; namespaces; labels/selectors; Deployments/ReplicaSets/StatefulSets/Jobs/CronJobs; Services/Ingress; DNS; ConfigMaps/Secrets; storage/PVC; RBAC; service accounts; network policy.
+- Requests/limits, scheduling, probes, restart/backoff, rollout/history/rollback, node drain/disruption budgets, events, logs, exec, autoscaling, affinity/taints/tolerations, and capacity.
+- Local cluster before managed EKS; EKS identity/network/node groups and operational boundaries; compare ECS. AKS and multi-cloud recovery are later comparative exercises when access and budget allow.
+- Helm and Argo CD operations, GitOps drift, safe sync, deployment health, and progressive delivery concepts.
+
+#### Asynchronous systems, scaling, and multi-tenant workload fairness
+
+- SQS producer/consumer, visibility timeout, at-least-once delivery, idempotency, deduplication, retry/backoff, poison messages, DLQ/redrive, ordering, consistency, and trace/correlation propagation.
+- Queue age/depth/throughput, consumer concurrency, database connection budget, backpressure, rate limits, load shedding, HPA metrics, KEDA triggers, scale-to-zero trade-offs, and lag recovery.
+- Tenant queue authorization and context, per-tenant quotas/fairness, noisy-neighbor isolation, and ways to avoid cross-tenant message/data exposure.
+
+#### Observability, dashboards, and SLOs
+
+- Metrics/logs/traces and events; instrumentation vs collector vs backend; OpenTelemetry API/SDK/Collector; context propagation; sampling; semantic conventions; exporters; collector pipelines/backpressure.
+- Prometheus scrape/labels/recording rules/PromQL; Grafana dashboard variables/panels/annotations/alerts; Loki/LogQL; Fluent Bit parsing, buffering, routing; Tempo trace search/correlation; CloudWatch; Splunk SPL; Datadog concepts.
+- RED/USE signals, golden signals, request rate, errors, p50/p95/p99 latency, saturation, JVM and DB signals, queue lag, cardinality, retention, access controls, and privacy-safe tenant attribution.
+- Define SLIs, SLO windows/targets, error budgets, burn-rate alerts, alert quality, dashboards from an empty folder, panel/query rationale, and operator actions.
+
+#### SRE operations, incidents, capacity, cost, and resilience
+
+- Incident severity, on-call handoff, roles, communication cadence, timeline, customer impact, escalation, mitigation vs root cause, evidence preservation, blameless review, action owners, and runbook quality.
+- Alert triage, P1/P2 workflow, service dependencies, change correlation, rollback, feature disablement, traffic shaping, recovery criteria, and post-incident follow-up.
+- OOMKilled/heap/GC/thread deadlock/CPU throttling/connection pool exhaustion/DNS/TLS/5xx/latency/failed batch/SQS backlog/telemetry loss/permission denial/node or zone loss.
+- Capacity planning, load testing, utilization, HPA/KEDA behavior, Kubecost allocation, right-sizing with SLO guardrails, backup/restore, RTO/RPO, DR/failover/return, and dependency timeouts.
+- Ansible inventory/playbooks/roles/handlers/variables/idempotency/check mode, Linux/Windows baseline configuration, patching, drift detection, and rollback.
+- PagerDuty/ServiceNow/Jira-style ticket, notification, escalation, change, incident, and problem workflows using simulated lab records.
+
+### Scenario progression
+
+- Foundation: command returns unexpected output, wrong working directory, permission denied, service not listening, DNS resolution failure, wrong port, disk full, process exit, and malformed HTTP request.
+- Application/data: bad profile, missing environment variable, failed health probe, exception/5xx, slow query, lock wait, schema mismatch, DB down, pool exhaustion, and restart with persistence check.
+- Tenant/security: missing or forged tenant context, cross-tenant read/write attempt, stale pooled connection context, queue message with wrong tenant, leaked sensitive field in logs, excessive metric cardinality, and overbroad operator permission.
+- Container/release/cloud: build context mistake, non-root permission failure, image pull/auth error, vulnerable dependency, failed quality gate, Terraform drift/state lock/partial apply, IAM denial, bad route/security group, failed rollout, and rollback.
+- Kubernetes/async/telemetry: Pending pod, CrashLoopBackOff, OOMKilled, readiness failure, service DNS issue, HPA/KEDA not scaling, growing SQS age, duplicate/poison message, DLQ growth, collector backpressure, missing trace, dropped logs, and false alert.
+- Production-style exercise: combine a bad release with a latency/SLO burn, tenant impact, queue growth, or DB saturation; coordinate roles, communicate impact, mitigate, verify recovery, and record actions.
+
+Each scenario must be reproducible and safe. Start from observed evidence, change one variable at a time where possible, protect data, avoid uncontrolled load, and clean up injected faults. Complexity grows from one host to containers, local Kubernetes, and carefully scoped cloud exercises.
+
+### Interview-round coverage
+
+- Resume/deep dive: explain each resume bullet with a clear system flow, your responsibility, tools, decisions, operational evidence, outcome, and limits of what you personally did.
+- Fundamentals: Linux, networking, Git, Java/Maven, Docker, AWS, Terraform, Kubernetes, SQL, security, and telemetry.
+- Live troubleshooting: narrate impact, inspect signals, form/test hypotheses, mitigate safely, and verify recovery while sharing concise updates.
+- System design: service boundaries, multi-tenant isolation, availability, scaling, failure domains, data consistency, observability, security, cost, and DR trade-offs.
+- Automation/coding: write/read Bash or Python helpers, explain edge cases, test behavior, handle errors, and protect secrets.
+- CI/CD and DevSecOps: pipeline stages, quality/security gates, artifact integrity, release approvals, deployment safety, and rollback.
+- SRE/on-call: SLI/SLO/error budgets, alerting, incident command, postmortems, capacity, toil reduction, and reliability trade-offs.
+- Behavioral/ownership: preparation, coordination, disagreement, escalation, learning from an incident, prioritization, and measurable evidence; use truthful examples from verified experience and the lab.
+
+No finite video list guarantees passing every interview. References prepare each day's work; the mastery evidence is that you can rebuild it, debug it under a scenario, explain alternatives, and answer follow-ups without relying on memorized scripts.
