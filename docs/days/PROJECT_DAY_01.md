@@ -284,3 +284,31 @@ Completed from reported evidence: EC2 login as ec2-user; Linux identity and Dock
 Open Day 1 closeout: put sanitized app code and tests in the personal repo; add reproducible database/app setup without committed secrets; perform a clean-clone rebuild; separately restart PostgreSQL with the same volume and verify the test row; record teardown evidence.
 
 Day 2 begins with a 10-minute no-notes recall and rebuild attempt. Then study pom.xml, Maven lifecycle, src/main, src/test, Spring configuration, and controller/service/repository boundaries. Improve the build and automated tests based on the gaps Day 1 exposed. Do not advance the platform until the baseline rebuild is repeatable.
+
+
+## Repository source of truth and daily rebuild workflow
+
+The personal GitHub repository is the canonical, versioned source for the lab. As the platform grows, keep the files needed to recreate each layer here: Spring Boot application source and tests, Maven configuration, Dockerfiles, Compose files, environment examples, shell scripts, Terraform modules, Kubernetes/Helm manifests, CI/CD workflows, dashboards, alerts, runbooks, and the daily learning and incident records. A lab step is not reproducible if its only instructions or code live on an EC2 home directory, in a terminal scrollback, or in an untracked local file.
+
+### Start every work session
+
+1. Connect to the personal lab repository and clone it on a fresh machine, or pull the latest approved changes into the existing personal lab checkout. Never run these Git commands from the Cisco work repository.
+2. Check `git status`, the current branch, latest commit, and repository tree. Confirm there are no unexpected local changes before rebuilding.
+3. Read yesterday's `docs/days/PROJECT_DAY_NN.md`, but first attempt the recall task without looking: draw the architecture, name the request path, list the key commands, explain what each check proves, and describe one failure and its diagnostic evidence. Then compare with the notes and correct gaps.
+4. Follow only version-controlled scripts and configuration to recreate the previous day's baseline. Use clearly named sample configuration such as `.env.example`; supply actual credentials locally through ignored environment files or a secrets manager.
+5. Run the baseline smoke checks and capture relevant, sanitized outputs in today's report. Record the commit SHA and environment details so the result can be tied to the code that produced it.
+6. Work today's manager-assigned ticket as a small increment. Diagnose failures layer by layer, preserve the evidence, write the fix and the reason for it, then update the runbook, architecture, interview questions, and next-day handoff.
+7. Review the change with `git diff`, commit it on the personal project branch, and push to this same personal GitHub repository. Do not put credentials, tokens, private customer information, or raw sensitive logs in a public repo.
+8. Decommission lab resources when the assignment is finished; record what was stopped or deleted, what persistent data was intentionally kept, and any expected cost.
+
+### What belongs in Git, and what does not
+
+Commit reproducible definitions and sanitized evidence. Do not commit real secrets, SSH private keys, `.env` files, cloud credentials, Terraform state, database volume contents, generated binaries, temporary logs, or real customer data. Use `.gitignore`, least-privilege IAM, and a future secure Terraform state backend for those items. Keep synthetic lab data disposable and recreate it from a documented seed or migration when the assignment requires data. Git stores the recipe and code; it does not preserve the running EC2 machine, a Docker volume, or a live database.
+
+A clean clone is the reproducibility test: it should be possible to reconstruct the prior day's intended environment from committed code and documented prerequisites, then continue with the new increment. If the clone cannot do this, record the missing dependency as a defect in the lab rather than relying on memory or undocumented manual steps.
+
+### Day 1 source-code closeout ticket
+
+The EC2 host currently has the working Spring Boot application and PostgreSQL container, but the application source has not yet been committed to this repository. Therefore the service is not yet reproducible from a clean clone. The next coding increment is to add the sanitized Spring Boot source and tests, `pom.xml` and Maven wrapper, database configuration, Compose definition, and `.env.example` here; then prove the same service can be built and started from a fresh clone. Keep credentials out of the files. Until that work is committed and rebuilt, describe the running EC2 service as an observed lab state, not as a repo-recreated deployment.
+
+For each future day, create a new report such as `docs/days/PROJECT_DAY_02.md`, while retaining prior reports. The repository should let the learner start at the beginning, rebuild Day 1, then apply Day 2 and later increments in sequence.
