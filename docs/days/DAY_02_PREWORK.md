@@ -6,7 +6,7 @@ The application source and tests already live in `services/claims-api/` in this 
 
 ## Mission
 
-**LAB-003 — Build a Docker image for the existing API and run it with PostgreSQL through Docker Compose.**
+**LAB-002 — Build a Docker image for the existing API and run it with PostgreSQL through Docker Compose.**
 
 Learn how the code becomes a JAR, how a Dockerfile packages it, how Compose starts the API and database, and how the API finds PostgreSQL over the Compose network. Day 2 does not introduce Kubernetes, queues, Terraform, or a large AWS footprint.
 
