@@ -312,3 +312,18 @@ A clean clone is the reproducibility test: it should be possible to reconstruct 
 The EC2 host currently has the working Spring Boot application and PostgreSQL container, but the application source has not yet been committed to this repository. Therefore the service is not yet reproducible from a clean clone. The next coding increment is to add the sanitized Spring Boot source and tests, `pom.xml` and Maven wrapper, database configuration, Compose definition, and `.env.example` here; then prove the same service can be built and started from a fresh clone. Keep credentials out of the files. Until that work is committed and rebuilt, describe the running EC2 service as an observed lab state, not as a repo-recreated deployment.
 
 For each future day, create a new report such as `docs/days/PROJECT_DAY_02.md`, while retaining prior reports. The repository should let the learner start at the beginning, rebuild Day 1, then apply Day 2 and later increments in sequence.
+
+
+## Fresh repository rebuild and API outage drill — 2026-09-28
+
+This update supersedes the earlier statements in this report that the source was not yet committed, that a clean-clone rebuild remained blocked, and that an API-stopped drill was only planned. Those statements described the state before the fresh repository rebuild.
+
+The sanitized Spring Boot source, tests, Maven Wrapper, configuration, PostgreSQL Compose definition, environment example, and bootstrap scripts are in this repository. On a fresh Amazon Linux 2023 EC2 host, the personal branch was cloned and the lab rebuilt from the checked-in files. The generated .env stayed local and ignored. The current repo rebuild runs Spring Boot on host port 8081 and Compose PostgreSQL as service postgres, with host port 5433 forwarded to container port 5432. The original one-off setup described earlier used different ports and a different container name; use the current repo files for a rebuild.
+
+Observed rebuild evidence: Compose reported PostgreSQL healthy; pg_isready accepted connections; Maven tests completed with 2 tests and no failures or errors; the API health endpoint returned HTTP 200 with status UP; a synthetic claim was created with HTTP 201, retrieved with HTTP 200, and confirmed in a PostgreSQL query. After restarting the API process while leaving PostgreSQL running, the same claim remained retrievable. This does not prove database restart, EC2 reboot, backup/restore, or high availability.
+
+Observed controlled outage drill: Spring Boot was stopped. The health curl failed to connect; docker compose ps still showed PostgreSQL healthy; ps showed no Java process; ss showed no listener on port 8081. The evidence identified a stopped API process. Spring Boot was restarted and the health endpoint returned HTTP 200/UP. This was a lab drill, not a production incident.
+
+Still not demonstrated: PostgreSQL container restart while retaining the volume, host reboot recovery, backup/restore, external secret management, CI/CD, dashboards, SLOs, multi-tenancy, production availability, and cloud disaster recovery. Do not mark those topics complete until tested and documented.
+
+See docs/days/PROJECT_DAY_01_LEARNING_GUIDE.md for beginner definitions, file ownership, tool choices, command explanations, request flow, troubleshooting approach, interview practice, and the recall checklist.
