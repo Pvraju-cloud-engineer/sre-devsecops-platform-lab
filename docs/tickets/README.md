@@ -6,8 +6,8 @@ Use this folder as the first stop when you meet a failure. Find the matching tic
 
 | Ticket | Status | Work item | Detailed record |
 |---|---|---|---|
-| DAY-01 | Done — baseline rebuilt and verified; recall practice remains part of learning | Rebuild and operate the existing Spring Boot API with PostgreSQL | [Day 1 guide and completion evidence](../days/PROJECT_DAY_01.md#13-day-1-completion-and-boundaries) · [Troubleshooting method](../days/PROJECT_DAY_01.md#8-command-reference-and-troubleshooting-method) · [Observed issues](../days/PROJECT_DAY_01.md#9-actual-issues-observed) · [API process stopped drill](../days/PROJECT_DAY_01.md#api-was-not-initially-listening) |
-| LAB-003 | Ready — assigned, implementation not started | Containerize the existing API and run it with PostgreSQL using Compose | [Day 2 assignment and acceptance criteria](../days/DAY_02_PREWORK.md#mission) · [Failure drills](../days/DAY_02_PREWORK.md#day-2-failure-drills) |
+| LAB-001 | Done — baseline rebuilt and verified; recall practice remains part of learning | Rebuild and operate the existing Spring Boot API with PostgreSQL | [Day 1 guide and completion evidence](../days/PROJECT_DAY_01.md#13-day-1-completion-and-boundaries) · [Troubleshooting method](../days/PROJECT_DAY_01.md#8-command-reference-and-troubleshooting-method) · [Observed issues](../days/PROJECT_DAY_01.md#9-actual-issues-observed) · [API process stopped drill](../days/PROJECT_DAY_01.md#api-was-not-initially-listening) |
+| LAB-002 | Ready — assigned, implementation not started | Containerize the existing API and run it with PostgreSQL using Compose | [Day 2 assignment and acceptance criteria](../days/DAY_02_PREWORK.md#mission) · [Failure drills](../days/DAY_02_PREWORK.md#day-2-failure-drills) |
 
 ## How we track a ticket
 
