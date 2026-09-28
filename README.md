@@ -39,28 +39,10 @@ Each day starts with recall and reference study, then one assigned work ticket. 
 
 ## Repository map
 
+- `docs/tickets/README.md` — clickable ticket status and troubleshooting index; each entry links to the canonical daily evidence.
 - `docs/RESUME_TO_LAB_ROADMAP.md` — staged plan mapping resume skills to build evidence, including multi-tenancy.
 - `docs/REALTIME_PROJECT_WORK_MODEL.md` — simulated team roles, ticket flow, reviews, release and incident workflow.
 - `docs/architecture/target-platform.md` — staged target architecture and data/telemetry paths.
 - `docs/days/PROJECT_DAY_01.md` — Day 1 baseline, commands, troubleshooting, and interview review.
 - `docs/days/DAY_02_PREWORK.md` — preparation checklist for the next build session.
 - `services/README.md` — service boundaries and application conventions.
-- `ops/postgres/README.md` — local database lab and safe persistence notes.
-- `runbooks/README.md` — operational runbook index and incident template.
-
-## Status
-
-Day 1 established a Java/Spring Boot claims API baseline on an EC2 lab host and a PostgreSQL container with a named persistent volume. The API was started and queried locally; a claim was created and then confirmed in PostgreSQL. The subsequent days will rebuild the progression in this repository as reproducible files, scripts, and notes rather than relying on shell history.
-
-## Working safely
-
-- Use a dedicated personal AWS lab account and region.
-- Create a budget and alerts before provisioning. Free tier does not guarantee zero charges.
-- Restrict SSH to your current public IP; do not expose PostgreSQL publicly.
-- Stop or terminate compute and remove unused storage, load balancers, snapshots, and NAT resources after exercises.
-- Use synthetic data only.
-- Never put passwords, tokens, SSH keys, `.env` files, Terraform state, or real customer/incident data in Git.
-
-## How to start
-
-Start with `docs/days/PROJECT_DAY_01.md`, then follow the daily work loop. Each day should end with a working increment, a verification result, a troubleshooting scenario, and an interview-ready explanation.
