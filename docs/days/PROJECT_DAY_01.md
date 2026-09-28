@@ -1,329 +1,263 @@
-# Project Day 1: Service Baseline, Access, and First-Response Habits
+# Project Day 1 — Beginner SRE and DevOps Service Baseline
 
-## Day 1 purpose
+> Single source of truth for Day 1: assignment, concepts, architecture, files, commands, observed work, troubleshooting, scenarios, interview practice, videos, recall, and cleanup.
 
-Start the platform from a small, observable vertical slice. Learn who can access the host, what runs there, how one request reaches durable data, and how to distinguish symptoms across the Linux, application, container, and database layers. This claims API is the first workload in a larger multi-service, multi-tenant SRE/DevSecOps lab; it is not the final platform.
+## 1. Day 1 assignment and goal
 
-Day 1 is complete only when the observed baseline is reproducible from this personal repository, the learner can explain it without notes, and the evidence and limits are documented. Previously observed actions are marked as completed below. Actions not yet proved remain open.
+Imagine a user submits a claim description to a web service. The service must accept it, store it, and return it when asked. If a request fails, an engineer must find which layer failed: Linux host, Java process, network listener, API, database, credentials/configuration, or stored data.
 
-## Manager's Day 1 assignment
+**Manager-assigned practice ticket:** establish a safe, repeatable baseline for a small claims API; submit synthetic data; retrieve it; prove it reached PostgreSQL; check API and DB separately; document evidence and troubleshooting.
 
-Ticket: Establish and document a safe lab service baseline for a claim-submission API backed by PostgreSQL.
+Acceptance: rebuild from this repo on a fresh Amazon Linux 2023 EC2 host; identify account/process/listeners/Docker access; prove DB readiness and API health separately; POST a claim, GET it, check SQL; restart Spring Boot and fetch same row; stop the API intentionally, diagnose and recover; save sanitized code and learning notes in the personal GitHub repo. Never commit secrets.
 
-User impact: A request must be accepted, stored, and retrievable. Operators need a reliable way to check service and dependency health.
+This is the first small vertical slice of a larger SRE/DevOps learning platform. It is not production, does not prove an SLO, and does not prove high availability or disaster recovery.
 
-Scope: One personal lab EC2 host; one Spring Boot process; one PostgreSQL container and named volume; loopback-only database port; synthetic data. No production account, customer data, public database listener, or extra always-on cloud service.
+## 2. What SRE and DevOps mean here
 
-Acceptance criteria:
+**DevOps** is collaboration between development and operations, supported by repeatable automation for building, testing, configuring, and releasing software. In this lab, Maven Wrapper, Compose YAML, bootstrap scripts, and Git are early examples.
 
-1. Identify the active Linux account, working directory, app process, listeners, and Docker access.
-2. Confirm PostgreSQL readiness and the Spring health endpoint independently.
-3. Create a record through HTTP, retrieve it through HTTP, and confirm the row in PostgreSQL.
-4. Restart Spring Boot and prove the API can retrieve the same record.
-5. Explain which layer each check exercises and what it does not prove.
-6. Record symptoms, commands, evidence, diagnosis, fix, and verification for every issue observed.
-7. Preserve the exact observed architecture and working steps in a sanitized, rebuildable repository. Keep credentials out of Git.
-8. On the next session, reconstruct the flow from memory before consulting this file; use the note afterward to check gaps.
+**SRE** applies software engineering and operational methods to keep services reliable. SRE considers user impact, measures service behavior, investigates incidents using evidence, restores safely, records learning, and reduces repeated manual toil. Day 1’s stopped-API drill is controlled practice, not a production incident. See [Google Cloud SRE](https://cloud.google.com/sre) and the SRE book’s [on-call chapter](https://sre.google/sre-book/being-on-call/).
 
-Definition of done: The system is healthy, the evidence is saved, the runbook is usable by another learner, and temporary resources have an explicit cost and cleanup owner.
+The manager/service owner defines ticket scope and acceptance criteria. Developers usually own application behavior/tests; platform or DevOps engineers commonly own delivery automation and shared runtime foundations; database engineers may own database operations; SRE partners with service teams on reliability, on-call, observability, incident response, and automation. Actual ownership varies by employer. A new engineer learns the escalation and change paths before changing production.
 
-## Learning before the assignment
+**SRE’s questions:** What is the symptom? Who is affected? What evidence separates the layers? What changed? What is the lowest-risk mitigation? How will recovery be verified? What follow-up reduces recurrence?
 
-Watch these before running the lab. Take notes in your own words; pause at the request/database path and health-check sections.
+## 3. Architecture and request flow
 
-- Linux operating-system crash course, freeCodeCamp: https://www.youtube.com/watch?v=ROjZy1WbCIA. Focus on users, files, permissions, processes, and command-line diagnosis.
-- Spring Boot REST API with PostgreSQL and Maven: https://www.youtube.com/watch?v=G6C0zGRNk7s. Focus on HTTP request, controller/service/repository, persistence, and status codes.
-- Docker in 100 Seconds: https://www.youtube.com/watch?v=Gjnup-PuquQ. Intro only; then read Docker volumes: https://docs.docker.com/engine/storage/volumes/.
-- SRE on-call principles: https://sre.google/sre-book/being-on-call/.
-- Incident response and disciplined roles: https://sre.google/sre-book/managing-incidents/.
-- Monitoring as a diagnostic tool: https://sre.google/workbook/monitoring/.
+PuTTY is the SSH terminal on Windows. It uses a key pair to log in to the EC2 host as ec2-user. curl sends HTTP to Spring Boot running on the EC2 host. The API connects to PostgreSQL running in Docker Compose. A named Docker volume keeps database files separate from the container writable layer.
 
-Learning questions to answer before the terminal work:
+    PuTTY -> SSH key -> Amazon Linux 2023 EC2 (ec2-user)
+      -> curl HTTP to 127.0.0.1:8081
+      -> Spring Boot / embedded Tomcat / ClaimController
+      -> validation -> ClaimRepository / Spring Data JPA / Hibernate
+      -> JDBC to host 127.0.0.1:5433
+      -> Compose port mapping -> PostgreSQL container port 5432
+      -> claims table -> claims-db-data named volume
+      -> JSON response to curl
 
-- What does SSH key authentication establish? Does it grant root automatically?
-- What is the difference between a process being running, a port listening, and an HTTP health check succeeding?
-- Why can PostgreSQL be healthy while the API returns connection refused?
-- What survives container replacement: the image, writable layer, or named volume?
-- What evidence would you gather before changing a service during an incident?
+**Repo rebuild ports:** API host port 8081; database Compose service postgres; host mapping 127.0.0.1:5433 to container port 5432. Spring runs on host, so docker compose ps lists PostgreSQL but not Java. The initial manual setup used ports 8080/5432 and a standalone claims-db container; it is a different setup. Follow current repo files for rebuild.
 
-## Day 1: what an SRE is doing
+One POST path: curl sends POST /claims with JSON; embedded Tomcat accepts HTTP; Spring routes to ClaimController; validation rejects blank description; controller creates a Claim with UUID, description, status SUBMITTED, timestamp; ClaimRepository asks Spring Data JPA to save; Hibernate maps entity to SQL; JDBC sends it to PostgreSQL; PostgreSQL writes a row on its mounted volume; Spring returns HTTP 201 plus JSON and ID. GET /claims/{id} reads the row and returns 200, or 404 if absent.
 
-In a service team, a first-day SRE normally gets access through approved onboarding, learns service ownership and escalation paths, reads the architecture and runbooks, inspects dashboards and recent changes, shadows an experienced on-call engineer, and learns change and incident procedures. The exact sequence varies by organization. A new engineer does not make unreviewed production changes before understanding ownership, impact, and rollback.
+**Definitions:** HTTP is the request/response protocol; a controller handles web requests; an entity/model represents data; a repository accesses data; JPA/Hibernate maps Java objects to SQL; JDBC connects Java to the database; PostgreSQL stores relational rows; an image is a container template; a container is a running isolated process; a volume stores data separately from container lifecycle; a health endpoint is a point-in-time signal, not a complete SLO/monitoring system.
 
-In this lab, we simulate that onboarding by establishing an inventory, mapping one request, observing health and persistence, and writing a first-response runbook. We do not claim the lab is production or that lab tests establish a production SLO.
+Successful end-to-end work requires Java running, API listener open, correct DB URL/port, PostgreSQL ready, valid credentials, schema, and correct code. A healthy DB does not prove API availability. API health does not prove all user journeys or backups.
 
-## Starting state and architecture
+## 4. Why these tools? What alternatives exist?
 
-Host: Amazon Linux 2023 EC2, accessed from Windows with PuTTY and a key pair. The interactive account used for the app was ec2-user. The app directory is /home/ec2-user/usaa-sre-lab/app.
+- **EC2 / Amazon Linux 2023:** a Linux host to learn identity, packages, files, processes, ports, and service operation. “Free tier” does not make all storage, IP, or services free; verify billing and cleanup.
+- **Java / Spring Boot:** chosen because the project and resume use Java/Spring. Boot starts the configured app and integrates HTTP, validation, database access, health endpoint. Python/FastAPI, Node, Go, or other Java frameworks could implement a similar API; we follow this codebase, not a claim of universal superiority.
+- **PostgreSQL:** fits the existing config and relational claim data. MySQL is also relational and could support the use case with different driver/config. Neither is always better; team standards and workload decide.
+- **Docker Engine:** runs PostgreSQL in an isolated container. **Compose:** describes the service, ports, health check, restart policy, and volume in YAML and manages its lifecycle. In production a team may use RDS, ECS, or Kubernetes; Compose is our learning-scale tool. [Docker Compose docs](https://docs.docker.com/compose/).
+- **Maven:** reads pom.xml, dependencies and plugins; compiles, tests, packages. Maven Wrapper uses project-selected Maven version, avoiding dependence on globally installed Maven. test builds through tests; package also makes a distributable artifact such as a JAR. Official [POM guide](https://maven.apache.org/guides/introduction/introduction-to-the-pom.html) and [lifecycle guide](https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle).
+- **Git/GitHub:** stores versioned recipe/code, not EC2 itself or a running DB volume. A clean clone tests reproducibility.
+- **Secrets:** local .env is ignored; .env.example is a placeholder template. Never commit real passwords, private SSH keys, tokens, AWS credentials, customer data, Terraform state, or sensitive logs.
 
-Components:
+## 5. Repository files: what each does
 
-- Spring Boot application launched with the Maven Wrapper from the app directory; HTTP port 8080.
-- Spring Actuator health endpoint at /actuator/health.
-- PostgreSQL 16 Alpine container named claims-db; database and user named claims.
-- Docker named volume claims-db-data mounted at /var/lib/postgresql/data.
-- PostgreSQL host port published on 127.0.0.1:5432, so it was not exposed as a public EC2 listener.
-- Claims API supports creating and retrieving a claim. The observed record had a generated UUID, description, SUBMITTED status, and creation timestamp.
+    docs/days/PROJECT_DAY_01.md       # this single Day 1 source of truth
+    docs/days/DAY_02_PREWORK.md
+    docs/architecture/target-platform.md
+    scripts/bootstrap/install-compose-plugin.sh
+    scripts/bootstrap/init-claims-api-env.sh
+    services/claims-api/.env.example
+    services/claims-api/compose.yaml
+    services/claims-api/pom.xml
+    services/claims-api/mvnw and .mvn/wrapper/
+    services/claims-api/src/main/java/com/example/claims/
+    services/claims-api/src/main/resources/application.properties
+    services/claims-api/src/test/java/com/example/claims/ClaimsApiApplicationTests.java
+    .gitignore and README.md
 
-Request path:
+- ClaimsApiApplication.java starts Spring Boot; @SpringBootApplication enables configuration/component discovery.
+- ClaimController.java defines HTTP endpoints, validation, status codes.
+- Claim.java defines entity fields mapped to claims table.
+- ClaimRepository.java provides Spring Data persistence operations.
+- application.properties stores app/database configuration; environment variables can override.
+- pom.xml defines project identity, dependencies, Java/build plugins.
+- ClaimsApiApplicationTests.java tests create/read and invalid blank input.
+- compose.yaml declares PostgreSQL image, service name, required environment, loopback port, named volume, readiness check.
+- .env.example safely names variables; local .env contains secret and stays ignored.
+- init-claims-api-env.sh creates ignored config using a random password without printing it.
+- install-compose-plugin.sh installs pinned Compose only after SHA-256 verification.
+- .gitignore excludes secrets, generated target, keys, local state/logs.
 
-PuTTY shell or local process -> HTTP request to 127.0.0.1:8080 -> Spring Boot HTTP/controller layer -> application/service and persistence code -> PostgreSQL at 127.0.0.1:5432 -> PostgreSQL data files on claims-db-data -> JSON response.
+Application developers normally change code/tests; DevOps/platform engineers often change build/release/config automation; SRE and service owners document operational behavior. In this lab you learn to navigate all layers.
 
-Operational dependency path:
+## 6. Rebuild flow from a fresh EC2
 
-PuTTY SSH session -> Linux identity and file permissions -> Java process and TCP listener -> Docker daemon -> PostgreSQL container readiness -> database credentials/schema -> application request.
+1. Create a disposable Amazon Linux 2023 EC2 with intended SSH key, restricted access, recorded region/type/storage/security group, and cleanup plan. SSH key auth as ec2-user does not make you root; use sudo only for system administration.
+2. Inventory user, OS, CPU architecture, disk, memory, tools. This catches wrong identity, environment, or resource assumptions early.
+3. Install required Git, Java 21, Docker, curl, OpenSSL, utilities using OS package manager. Start/enable Docker using systemd. Add ec2-user to docker group only for lab convenience; Docker group is highly privileged. Reconnect to refresh group membership.
+4. Clone only the personal repo/branch. Inspect status, commit, files. Never run commands from Cisco work repo.
+5. Run checked-in Compose plugin installer; verify docker compose version.
+6. Run env initializer. It generates local ignored .env; do not print it. Confirm .gitignore matches it.
+7. Validate with docker compose config --quiet. Start DB with docker compose up -d --wait --wait-timeout 60. Check docker compose ps and pg_isready; Up alone is not readiness.
+8. Load local environment in shell and run ./mvnw test. Tests prove coded behaviors at test time, not a live server’s availability.
+9. Start Spring Boot in a visible terminal so logs are available. The repo API port is 8081.
+10. Check health, POST, GET, SQL. Record sanitized evidence and exact commit/environment.
+11. Stop API for controlled drill; inspect app process/listener and DB independently; restart; verify health + GET.
+12. Record cleanup; stopping EC2 can leave storage and other billable resources. Deleting a named volume deletes its data. Verify the AWS console state.
 
-The application process and database container are separate failure domains. A healthy database does not mean the Java process is listening. A successful health response does not by itself prove claim creation, persistence, authorization, backup, restore, or end-user availability.
+## 7. Commands, examples, definitions
 
-## End-to-end work performed and evidence
+Run in PuTTY one at a time. Use plain URL in curl, not Markdown-link syntax. Never put real passwords in commands/history.
 
-These items were reported from the user's terminal session. They are actual observed lab actions, not hypothetical production incidents.
-
-1. Connected to EC2 through PuTTY using the key pair and logged in as ec2-user.
-2. Inspected the app directory and confirmed Maven Wrapper, pom.xml, src/, and target/ existed.
-3. Checked Docker Engine. Docker Compose was not available as a subcommand, so the first database launch used docker run.
-4. Added ec2-user to the docker group, reconnected, and verified id showed docker membership and docker ps worked. Docker group membership is effectively root-level access; it is a lab convenience and must be treated as privileged access.
-5. Started PostgreSQL 16 Alpine as claims-db with a named volume, restart policy, and host port bound only to loopback. The password used in the initial lab command is not a repository value; replace it with a local ignored env file or secret manager before making the stack reproducible.
-6. Read container logs and ran pg_isready. The final state said PostgreSQL was accepting connections. Initialization logs included a temporary-server shutdown; readiness was determined from the final startup and readiness check, not one shutdown line.
-7. Started the Spring Boot process with the Maven Wrapper in the app directory.
-8. Requested /actuator/health on 127.0.0.1:8080 and received JSON health output.
-9. Sent POST /claims with a synthetic description. The service returned HTTP 201 and a generated record with SUBMITTED status.
-10. Sent GET /claims/{id} and received the same record.
-11. Queried PostgreSQL with psql and confirmed the row and created_at value.
-12. Restarted the Spring Boot application, queried the record again, and confirmed it was still available. This proves the app reconnected to the still-running database. It does not prove PostgreSQL container restart, host reboot, backup, or restore behavior.
-
-## Commands and why they matter
-
-Run one command at a time from the EC2 shell. Use a plain URL in curl, not Markdown link syntax.
+### Linux identity/resources
 
     whoami
+    hostname
     pwd
     id
-    ls -la ~/usaa-sre-lab/app
+    cat /etc/os-release
+    uname -m
+    free -h
+    df -h /
+    nproc
 
-Identity and path checks explain home-directory and permission problems before changing ownership.
+whoami=current account; hostname=host name; pwd=current directory; id=user/group IDs and memberships; /etc/os-release=distro/version (absolute path; etc/os-release is relative and can fail); uname -m=CPU architecture; free -h=memory; df -h /=root filesystem capacity; nproc=available processors.
 
+### Git baseline
+
+    git clone --branch Pvraju-cloud-engineer-patch-3 --single-branch https://github.com/Pvraju-cloud-engineer/sre-devsecops-platform-lab.git
+    cd ~/sre-devsecops-platform-lab
+    git status --short --branch
+    git log -1 --oneline
+    find . -maxdepth 3 -type f -not -path './.git/*' | sort
+
+clone downloads code/history; --branch selects branch; status shows branch/changes; log shows latest commit; find inventories files. git log -1 --online was a typo; use --oneline and read error messages.
+
+### Compose / database
+
+    cd ~/sre-devsecops-platform-lab/services/claims-api
     docker --version
     docker compose version
-    docker ps --filter name=claims-db
-    docker logs --tail 30 claims-db
-    docker exec claims-db pg_isready -U claims -d claims
+    docker compose config --quiet
+    docker compose up -d --wait --wait-timeout 60
+    docker compose ps
+    docker compose logs --tail 50 postgres
+    docker compose exec postgres pg_isready -U claims -d claims
 
-These inspect the engine, optional Compose component, container state/logs, and PostgreSQL readiness. Container state alone is not a readiness check.
+Docker Engine and Compose are separate checks. config validates YAML/env; up -d starts background services and wait awaits health; ps lists Compose services only; logs reads service output; exec runs a command inside exact service postgres; a typo yields service-not-found; pg_isready checks PostgreSQL readiness, not API behavior.
 
+### Maven / app
+
+    cd ~/sre-devsecops-platform-lab/services/claims-api
+    set -a
+    source .env
+    set +a
+    ./mvnw -version
+    ./mvnw test
+
+source loads local variables; set -a exports them to child processes, set +a stops auto-export. They configure DB URL/user/password and server port. Keep .env secret. A compile error is before tests run; assertion failure means code compiled but behavior differs. The test command does not keep the API running. Start app in a visible terminal with environment loaded; keep logs accessible.
+
+### HTTP, process, port, SQL
+
+    curl -i http://127.0.0.1:8081/actuator/health
+    curl -i -X POST http://127.0.0.1:8081/claims -H 'Content-Type: application/json' -d '{"description":"synthetic Day 1 test"}'
+    curl -i http://127.0.0.1:8081/claims/PASTE_RETURNED_UUID_HERE
+    docker compose exec postgres psql -U claims -d claims -c "SELECT id, description, status, created_at FROM claims;"
     ps -ef | grep '[j]ava'
-    ss -lntp | grep -E ':8080|:5432'
-    curl -i http://127.0.0.1:8080/actuator/health
+    ss -lntp | grep -E ':8081|:5433'
 
-These test the Java process, TCP listeners, and application health response. If a command returns no match, record that as evidence rather than repeatedly retrying.
+curl -i shows status/headers/body. Use POST UUID for GET. 201=created; 200=success; 400=invalid request; 404=record absent. SQL independently confirms row. ps checks process; bracket grep avoids matching itself; ss shows listening TCP ports. Compose does not show host Java.
 
-    curl -i -X POST http://127.0.0.1:8080/claims -H 'Content-Type: application/json' -d '{"description":"synthetic lab claim"}'
-    curl -i http://127.0.0.1:8080/claims/REPLACE_WITH_RETURNED_ID
-    docker exec claims-db psql -U claims -d claims -c "SELECT id, description, status, created_at FROM claims;"
+## 8. Work performed and observed evidence
 
-The POST response supplies the identifier for GET and SQL verification. Do not paste angle-bracket placeholders or Markdown links as literal URLs.
+On a fresh Amazon Linux 2023 host, the repo was cloned. Compose plugin installed with checksum verification; env bootstrap created ignored .env; Compose config validated; PostgreSQL healthy and pg_isready accepted connections. Maven reported **2 tests, zero failures, zero errors**. Actuator returned HTTP 200 and UP. Synthetic POST returned 201 with UUID; GET returned 200 and same claim; SQL showed the row. Spring Boot was restarted with PostgreSQL still running; GET still returned the record. This proves the app reconnected/read the existing row from the still-running DB. It does not prove DB restart, host reboot, backup, or restore.
 
-    docker inspect claims-db --format '{{json .Mounts}}'
-    docker volume inspect claims-db-data
+**Observed API-stop drill:** health curl failed to connect; docker compose ps showed PostgreSQL healthy; ps found no Java process; ss showed no port 8081 listener. Diagnosis: Spring Boot had stopped; DB remained up. After restart, health returned HTTP 200/UP. This was a controlled lab drill, not a production incident.
 
-These verify that the named volume is attached. Inspecting a volume does not verify backups or successful restoration.
+## 9. Troubleshooting records and SRE method
 
-## Day 1 debugging record: actual observed issues
+| Symptom | Evidence/cause | Response/lesson |
+|---|---|---|
+| App folder absent under ec2-user | Files initially under root home; ~ means current user home. | Check whoami, pwd, absolute path, ownership before moving/chowning; use least privilege. |
+| su ec2-user requested password | PuTTY key authentication differs from Linux su password auth. | Fresh PuTTY login as ec2-user; do not guess password. |
+| Docker permission denied after usermod | Existing SSH session had old supplementary group list. | Reconnect; id should show docker. Restrict docker group because it is privileged. |
+| docker compose unavailable | Docker Engine installed but Compose plugin absent. | Check/install/verify plugin independently. |
+| DB healthy but curl refused | DB readiness does not prove Java listener exists. | Process -> listener -> app logs/health -> DB -> request. |
+| API stopped drill | no Java process/listener; PostgreSQL healthy. | Restart app; verify health and GET; record evidence. |
+| cat etc/os-release failed | missing leading slash made it a relative path. | Use /etc/os-release. |
+| curl syntax error | Markdown link brackets/parentheses copied into shell. | Use plain URL and quote JSON. |
+| Compose service not found | typo; actual service is postgres. | Read services in compose.yaml and use exact name. |
+| Maven test compilation error on ObjectMapper | Class unavailable on attempted test classpath; it failed before tests. Later run passed two tests. | Read first compiler errors; inspect dependencies/imports; distinguish compile/test/runtime. |
+| Postgres init logs showed shutdown | initial image setup may stop a temporary server before final one starts. | Check final logs and pg_isready, not one line in isolation. |
+| git --online failed | invalid option typo. | Use git log -1 --oneline. |
 
-### App directory not found
+**Incident routine:** assess impact/scope; note time/recent changes; collect read-only evidence (process, port, logs, health, DB, disk/memory); separate facts from hypotheses; choose bounded low-risk mitigation; verify health and representative action/data; record timeline, supported cause, mitigation, recovery proof, follow-up. Communicate/escalate by team procedure. Blameless follow-up improves guardrails rather than blaming a person. See [Google incident management](https://sre.google/sre-book/managing-incidents/).
 
-Symptom: /home/ec2-user/usaa-sre-lab/app was absent when checked as ec2-user.
+## 10. Scenario practice — planned unless you record it as done
 
-Evidence and cause: The app tree had initially been created under root's home. Tilde and relative paths resolve for the current user, so root and ec2-user have different homes.
+For each, predict symptom, collect evidence, state hypothesis, test, mitigate safely, verify. Never delete a volume just to clear an error.
 
-Resolution: The directory was moved under /home/ec2-user/usaa-sre-lab and ownership was changed to ec2-user. Then the app path was listed successfully.
+- API stopped / DB healthy: compare curl, ps, ss, app logs, Compose; restart app; verify health + GET.
+- Wrong DB password: app may log authentication failure while pg_isready still works. Fix local config without printing secret; retry read/write.
+- PostgreSQL stopped: compare Compose state/logs, pg_isready, API symptoms; recover without removing volume; verify synthetic row.
+- Container replaced with same volume: inspect mount and row. Volume persistence is not backup/restore.
+- API port conflict: inspect ss and config; identify owner; never kill unknown process blindly.
+- Disk pressure: inspect df -h /, df -i /, Docker usage/logs; never delete DB files.
+- Blank request: expect 400 from validation.
+- Unknown UUID: expect 404; distinguish missing record from API outage.
+- Bad release (future drill): connect change to evidence, rollback to known-good, verify key user path.
 
-SRE lesson: Confirm whoami, pwd, id, and absolute paths before moving or chowning files. Use the least-privileged account for application work.
+Only the stopped-API drill is an observed controlled outage in this record. Others remain practice scenarios until actually performed.
 
-### su requested a password
+## 11. Health vs monitoring and SLOs
 
-Symptom: su ec2-user requested a password.
+A **health check** is a point-in-time signal. A **metric** is a value over time (request count, errors, latency, CPU, memory, queue). A **log** is timestamped event/message. A **trace** follows work across services. Day 1 manually used command output, app logs, HTTP, SQL. It did not build Prometheus, Grafana, Splunk, tracing, alerts, SLI/SLO, or error budget.
 
-Evidence and cause: PuTTY public-key authentication and Linux su authentication are separate. su asks for the target account's password; SSH key login does not provide it.
+An **SLI** measures behavior, such as valid requests succeeding or a latency percentile. An **SLO** is a target for an SLI over a time window. Error budget expresses allowed unreliability implied by the target. One health endpoint and a few curl requests cannot define/prove an SLO. See [Google SRE Workbook monitoring](https://sre.google/workbook/monitoring/); implementation comes later.
 
-Resolution: A fresh PuTTY login as ec2-user showed the expected identity and Docker group. Do not invent a password or weaken SSH access to work around this.
+## 12. Interview answers to rehearse
 
-### Docker Compose command was missing
+**Walk through the path:** “PuTTY connects to Amazon Linux as ec2-user. curl sends HTTP to Spring Boot on host port 8081. The controller validates JSON and uses Spring Data JPA/Hibernate via the repository; JDBC reaches PostgreSQL on host 5433 mapped to container 5432. PostgreSQL stores the row on a named volume. I verified POST, GET, and SQL.”
 
-Symptom: docker --version worked; docker compose version said compose was not a Docker command.
+**API connection refused?** “I assess scope, then check process, listener, logs, health, and PostgreSQL separately. In the observed drill DB was healthy, but Java and port 8081 listener were absent. I restarted Spring Boot and verified 200/UP and GET. I would not infer DB failure from refusal alone.”
 
-Evidence and cause: The Docker Engine was installed, but the Compose plugin was not available in this environment.
+**What does pg_isready prove?** “That PostgreSQL accepts readiness checks at that endpoint. It does not prove app credentials, schema, API behavior, data persistence, or backup restore.”
 
-Resolution: The initial PostgreSQL lab used docker run. Before a Compose-based rebuild, verify plugin installation from a trusted package source and document the installed version.
+**How did you prove persistence?** “POST returned ID, GET returned the record, SQL showed it. After restarting only the API, GET still found it while DB stayed up. DB restart, host reboot, backup/restore remain untested.”
 
-### Docker permission changed only after reconnect
+**Why Compose doesn’t show Java?** “Spring runs directly on EC2; Compose manages PostgreSQL only. ps/ss check host Java, Compose checks database container.”
 
-Symptom: docker group membership was added, but the current login did not immediately have the new group.
+**How did you handle test error?** “First run failed during test compilation because ObjectMapper was not available on that classpath. Later run reported two passing tests. I separate compile, assertion, startup, and runtime failures.”
 
-Evidence and cause: Group membership is established at login/session creation.
+**Container vs volume?** “Container is runtime instance; writable layer has container lifecycle. Volume is separate mounted storage that can survive container replacement. It is not an off-host backup and does not prove restore.”
 
-Resolution: The user reconnected; id then showed docker membership and docker ps worked.
+Use: **impact -> request path -> evidence -> hypothesis/test -> safest mitigation -> recovery proof -> remaining risk/follow-up**. Do not claim tests you did not perform.
 
-Security note: Membership in the docker group provides highly privileged host control. Keep it restricted to this personal lab account.
+## 13. Videos and reading order
 
-### First curl was connection refused
+Read this lesson first; then watch focused material, return to terminal, and teach the flow aloud. Pause to draw; video completion alone is not mastery.
 
-Symptom: curl to 127.0.0.1:8080 failed immediately; a later POST succeeded.
+1. **SRE/team/incident:** [SRE Fundamentals — Google Cloud Community](https://www.youtube.com/watch?v=eopc_ijIfLg). Focus what SRE solves, team structures, principles, responsibility areas. Read [on-call](https://sre.google/sre-book/being-on-call/) and [incident response](https://sre.google/sre-book/managing-incidents/).
+2. **Linux:** [Linux Operating System Crash Course — freeCodeCamp](https://www.youtube.com/watch?v=ROjZy1WbCIA). Focus terminal, directories/files, system info, networking, package manager; skip desktop sections if short on time. Learn whoami, pwd, id, paths, groups, processes, ports—not every command.
+3. **Spring/PostgreSQL/REST:** [CRUD in Spring Boot with PostgreSQL/JPA/REST](https://www.youtube.com/watch?v=6Evwt6nsRWs). Focus model, repository, controller, request and persistence; our API only creates/reads. Compare with [official Spring REST guide](https://spring.io/guides/tutorials/rest/).
+4. **Maven:** [Maven tutorial for beginners](https://www.youtube.com/watch?v=b93NNK2J3GM). Focus POM, dependency, wrapper, test/package; reference [POM](https://maven.apache.org/guides/introduction/introduction-to-the-pom.html) and [lifecycle](https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle).
+5. **Docker/Compose:** [Docker in 100 Seconds](https://www.youtube.com/watch?v=Gjnup-PuquQ) is quick orientation only; study [Compose docs](https://docs.docker.com/compose/) and [volumes](https://docs.docker.com/engine/storage/volumes/) for service, port, health, volume, ps/logs/exec.
+6. **SQL:** [PostgreSQL tutorial](https://www.postgresql.org/docs/17/tutorial.html); focus table, row, SELECT, connection. Query tuning comes later.
 
-Evidence and cause: At the first attempt no process accepted connections on port 8080. PostgreSQL readiness only proved the database was ready; it did not prove Spring Boot was running.
+**Day 1 target:** explain one request; locate each file; state ports and placement; run core checks; distinguish DB readiness from API health; diagnose actual API-stopped drill; say what evidence proves and does not prove. Advanced Java, SQL tuning, Kubernetes, Terraform, dashboards, and production database operations are later topics.
 
-Resolution: The app was running in another terminal for the successful request. A disciplined check is process -> listener -> application log -> health -> dependency -> user request.
+## 14. No-notes recall before Day 2
 
-### Markdown URL caused a shell syntax error
+Spend 10 minutes before opening this file:
 
-Symptom: shell reported a syntax error near an opening parenthesis.
+- Draw PuTTY/EC2 -> curl -> controller -> repository/JPA -> JDBC -> PostgreSQL container -> named volume -> HTTP response.
+- Write ports 8081, 5433, 5432 and service postgres.
+- Define user, group, directory, process, listener, status code, image, container, volume, readiness, env variable, POM, test.
+- List checks for host, Git, Compose/DB, process/port, health, HTTP, SQL.
+- Explain how DB can be healthy while API is refused.
+- Retell the actual outage drill: symptom, evidence, cause, action, recovery proof.
+- Mark scenarios not run unless you have output. Confirm .env ignored; save only sanitized evidence.
 
-Evidence and cause: Text copied in Markdown-link form included brackets and parentheses, which are not part of the URL and have shell meaning.
+Then clone the personal repo on a fresh disposable host and rebuild from checked-in scripts/config. Record missing instructions, compare this file, fix the recipe, and repeat. Start Day 2 when you can recreate/explain Day 1, not merely after videos.
 
-Resolution: Use only the plain URL in curl. Quote JSON and use Bash line continuation only when needed.
+## 15. Cleanup and boundaries
 
-### PostgreSQL logs showed a shutdown during initialization
+Record instance ID/region/state/type, storage, public IP/security group, Java process, Compose services, and volume. Stop/terminate only resources you intend to remove and verify AWS state. EC2 stop can leave billable storage/resources. Deleting named volume deletes lab DB data; do this only for intentional reset after confirming data disposable. Never put credentials or real tokens in repo.
 
-Symptom: logs contained a fast shutdown message during the first startup.
+**Demonstrated:** fresh repo rebuild, two tests passing, DB readiness, API health, synthetic HTTP create/read, SQL row, data readable after API restart, controlled API-stop diagnosis/recovery.
 
-Evidence and cause: The official image initializes a fresh data directory using a temporary server, stops it, then starts the normal server.
-
-Resolution: Check final logs and pg_isready. The final output said the database accepted connections.
-
-## Practice scenarios: sourced, not observed on this lab day
-
-These are next-step drills based on standard SRE incident-response and monitoring guidance. They did not happen in the recorded lab session. Reproduce them only in the disposable lab and record actual output before claiming a result.
-
-- API process stopped while PostgreSQL remains healthy: predict the symptom, verify process/listener, restore the app, then prove health and GET recovery.
-- Wrong application database password: identify the first failing layer from application logs, avoid printing secrets, correct local config, and prove a claim can be read.
-- PostgreSQL unavailable: compare container state, final logs, pg_isready, and API symptoms. Recover without removing the named volume.
-- Container replaced but named volume retained: verify the existing synthetic row after PostgreSQL restart/recreation. Do not run docker volume rm as a troubleshooting shortcut.
-- Disk pressure or full filesystem: learn read-only inspection first with df -h and df -i; do not delete database files. Later perform a bounded test in a disposable environment.
-- Bad release: identify the change, compare health and user-journey checks, roll back to a known version, and verify recovery before closing the event.
-
-The response pattern is: establish impact and scope; record time and recent change; inspect metrics/logs/process/network/dependency evidence; state facts separately from hypotheses; choose the lowest-risk mitigation; verify service and data recovery; record follow-up work. Google's incident-management material describes why explicit roles, communication, and practiced procedures matter: https://sre.google/sre-book/managing-incidents/.
-
-## What Day 1 teaches and what remains unproven
-
-You should know how PuTTY SSH identity differs from sudo/su, how Linux user homes and groups affect access, how to inspect a process and listener, how HTTP status and health endpoints differ, how a container differs from its volume, how to check PostgreSQL readiness, and how to trace one API record into SQL.
-
-Observed: API health response, HTTP 201 create, GET response, SQL row, and record read after application restart.
-
-Not yet evidenced: clean clone/rebuild from GitHub, checked-in sanitized Java source and tests, Compose-based startup, PostgreSQL restart with the volume, host reboot recovery, backup/restore, external secret management, CI, dashboards, SLOs, multi-tenancy, or production availability. These are future assignments, not Day 1 results.
-
-## Day 1 report: learner fills in after hands-on work
-
-Date/session:
-
-Ticket and impact:
-
-Architecture and request path drawn from memory:
-
-Commands run and important output:
-
-Observed symptom:
-
-Facts collected:
-
-Hypothesis and test:
-
-Root cause supported by evidence:
-
-Mitigation and recovery proof:
-
-What remains unknown:
-
-Cost/security review and cleanup status:
-
-One runbook improvement:
-
-## Interview practice and memory drill
-
-Answer aloud without reading first. Then compare with the note and improve your own wording.
-
-Recall from the terminal work:
-
-1. Why did the first curl fail, and what evidence would distinguish app-down from database-down?
-2. Why did su ask for a password after PuTTY key authentication?
-3. What changed after reconnecting for docker group membership?
-4. What does pg_isready prove? What does it not prove?
-5. What did the application restart check demonstrate, and what recovery test remains?
-
-Fundamentals:
-
-6. Explain HTTP 201 versus a health response.
-7. Explain container writable layer versus a named volume.
-8. Why bind PostgreSQL to loopback in this single-host exercise?
-
-Troubleshooting:
-
-9. The API returns connection refused but PostgreSQL is ready. Walk through diagnosis and recovery.
-10. The container is Up but API calls time out. What checks would you run and in what order?
-
-Design and ownership:
-
-11. What evidence would you require before calling this baseline production-ready?
-12. How would you hand off this service to the next on-call engineer?
-
-Use this answer structure: impact -> request/data path -> facts -> hypothesis/test -> safest mitigation -> recovery evidence -> follow-up. Avoid claiming an unperformed test.
-
-## No-notes rebuild at the next session
-
-Before opening this guide, draw the two flow paths from memory, list the ports and components, and write the diagnostic order for a failed request. Then start from a clean clone of this personal repository and rebuild the app/database using only the files checked in here. Record every point where instructions or files are missing. After the attempt, consult this note, fix the gaps, and repeat until you can complete the flow without it.
-
-Current blocker to that rebuild: the app source and automated tests were not yet in this repository when this note was expanded. The Day 1 closeout must add sanitized source/tests and reproducible local configuration before the clean-clone criterion can pass.
-
-## Cleanup and cost ownership
-
-Record the EC2 instance state, region, instance type, attached storage, public-IP/security-group exposure, running processes, containers, and Docker volume before ending the session. Stop or terminate only the lab resources you intentionally own and verify the AWS console state afterward. Stopping an instance does not necessarily stop storage or other billable resources. Never delete claims-db-data unless intentionally resetting disposable synthetic lab data and confirming it is no longer needed.
-
-## Day 1 status and Day 2 handoff
-
-Completed from reported evidence: EC2 login as ec2-user; Linux identity and Docker access; PostgreSQL ready; Spring Actuator health returned JSON; synthetic claim created and fetched; database row verified; record read after restarting Spring Boot; actual command and account issues documented.
-
-Open Day 1 closeout: put sanitized app code and tests in the personal repo; add reproducible database/app setup without committed secrets; perform a clean-clone rebuild; separately restart PostgreSQL with the same volume and verify the test row; record teardown evidence.
-
-Day 2 begins with a 10-minute no-notes recall and rebuild attempt. Then study pom.xml, Maven lifecycle, src/main, src/test, Spring configuration, and controller/service/repository boundaries. Improve the build and automated tests based on the gaps Day 1 exposed. Do not advance the platform until the baseline rebuild is repeatable.
-
-
-## Repository source of truth and daily rebuild workflow
-
-The personal GitHub repository is the canonical, versioned source for the lab. As the platform grows, keep the files needed to recreate each layer here: Spring Boot application source and tests, Maven configuration, Dockerfiles, Compose files, environment examples, shell scripts, Terraform modules, Kubernetes/Helm manifests, CI/CD workflows, dashboards, alerts, runbooks, and the daily learning and incident records. A lab step is not reproducible if its only instructions or code live on an EC2 home directory, in a terminal scrollback, or in an untracked local file.
-
-### Start every work session
-
-1. Connect to the personal lab repository and clone it on a fresh machine, or pull the latest approved changes into the existing personal lab checkout. Never run these Git commands from the Cisco work repository.
-2. Check `git status`, the current branch, latest commit, and repository tree. Confirm there are no unexpected local changes before rebuilding.
-3. Read yesterday's `docs/days/PROJECT_DAY_NN.md`, but first attempt the recall task without looking: draw the architecture, name the request path, list the key commands, explain what each check proves, and describe one failure and its diagnostic evidence. Then compare with the notes and correct gaps.
-4. Follow only version-controlled scripts and configuration to recreate the previous day's baseline. Use clearly named sample configuration such as `.env.example`; supply actual credentials locally through ignored environment files or a secrets manager.
-5. Run the baseline smoke checks and capture relevant, sanitized outputs in today's report. Record the commit SHA and environment details so the result can be tied to the code that produced it.
-6. Work today's manager-assigned ticket as a small increment. Diagnose failures layer by layer, preserve the evidence, write the fix and the reason for it, then update the runbook, architecture, interview questions, and next-day handoff.
-7. Review the change with `git diff`, commit it on the personal project branch, and push to this same personal GitHub repository. Do not put credentials, tokens, private customer information, or raw sensitive logs in a public repo.
-8. Decommission lab resources when the assignment is finished; record what was stopped or deleted, what persistent data was intentionally kept, and any expected cost.
-
-### What belongs in Git, and what does not
-
-Commit reproducible definitions and sanitized evidence. Do not commit real secrets, SSH private keys, `.env` files, cloud credentials, Terraform state, database volume contents, generated binaries, temporary logs, or real customer data. Use `.gitignore`, least-privilege IAM, and a future secure Terraform state backend for those items. Keep synthetic lab data disposable and recreate it from a documented seed or migration when the assignment requires data. Git stores the recipe and code; it does not preserve the running EC2 machine, a Docker volume, or a live database.
-
-A clean clone is the reproducibility test: it should be possible to reconstruct the prior day's intended environment from committed code and documented prerequisites, then continue with the new increment. If the clone cannot do this, record the missing dependency as a defect in the lab rather than relying on memory or undocumented manual steps.
-
-### Day 1 source-code closeout ticket
-
-The EC2 host currently has the working Spring Boot application and PostgreSQL container, but the application source has not yet been committed to this repository. Therefore the service is not yet reproducible from a clean clone. The next coding increment is to add the sanitized Spring Boot source and tests, `pom.xml` and Maven wrapper, database configuration, Compose definition, and `.env.example` here; then prove the same service can be built and started from a fresh clone. Keep credentials out of the files. Until that work is committed and rebuilt, describe the running EC2 service as an observed lab state, not as a repo-recreated deployment.
-
-For each future day, create a new report such as `docs/days/PROJECT_DAY_02.md`, while retaining prior reports. The repository should let the learner start at the beginning, rebuild Day 1, then apply Day 2 and later increments in sequence.
-
-
-## Fresh repository rebuild and API outage drill — 2026-09-28
-
-This update supersedes the earlier statements in this report that the source was not yet committed, that a clean-clone rebuild remained blocked, and that an API-stopped drill was only planned. Those statements described the state before the fresh repository rebuild.
-
-The sanitized Spring Boot source, tests, Maven Wrapper, configuration, PostgreSQL Compose definition, environment example, and bootstrap scripts are in this repository. On a fresh Amazon Linux 2023 EC2 host, the personal branch was cloned and the lab rebuilt from the checked-in files. The generated .env stayed local and ignored. The current repo rebuild runs Spring Boot on host port 8081 and Compose PostgreSQL as service postgres, with host port 5433 forwarded to container port 5432. The original one-off setup described earlier used different ports and a different container name; use the current repo files for a rebuild.
-
-Observed rebuild evidence: Compose reported PostgreSQL healthy; pg_isready accepted connections; Maven tests completed with 2 tests and no failures or errors; the API health endpoint returned HTTP 200 with status UP; a synthetic claim was created with HTTP 201, retrieved with HTTP 200, and confirmed in a PostgreSQL query. After restarting the API process while leaving PostgreSQL running, the same claim remained retrievable. This does not prove database restart, EC2 reboot, backup/restore, or high availability.
-
-Observed controlled outage drill: Spring Boot was stopped. The health curl failed to connect; docker compose ps still showed PostgreSQL healthy; ps showed no Java process; ss showed no listener on port 8081. The evidence identified a stopped API process. Spring Boot was restarted and the health endpoint returned HTTP 200/UP. This was a lab drill, not a production incident.
-
-Still not demonstrated: PostgreSQL container restart while retaining the volume, host reboot recovery, backup/restore, external secret management, CI/CD, dashboards, SLOs, multi-tenancy, production availability, and cloud disaster recovery. Do not mark those topics complete until tested and documented.
-
-See docs/days/PROJECT_DAY_01_LEARNING_GUIDE.md for beginner definitions, file ownership, tool choices, command explanations, request flow, troubleshooting approach, interview practice, and the recall checklist.
+**Not demonstrated yet:** PostgreSQL restart, EC2 reboot, backup/restore, managed secrets, CI/CD, production dashboards/alerts, measured SLI/SLO/error budget, multi-tenancy, HA, Kubernetes/EKS, Terraform provisioning, canary/blue-green, disaster recovery. These are future assignments; build and record evidence before claiming them.
