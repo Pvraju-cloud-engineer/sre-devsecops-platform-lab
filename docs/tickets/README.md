@@ -8,6 +8,7 @@ Use this folder as the first stop when you meet a failure. Find the matching tic
 |---|---|---|---|
 | LAB-001 | Done — baseline rebuilt and verified; recall practice remains part of learning | Rebuild and operate the existing Spring Boot API with PostgreSQL | [Day 1 guide and completion evidence](../days/PROJECT_DAY_01.md#13-day-1-completion-and-boundaries) · [Troubleshooting method](../days/PROJECT_DAY_01.md#8-command-reference-and-troubleshooting-method) · [Observed issues](../days/PROJECT_DAY_01.md#9-actual-issues-observed) · [API process stopped drill](../days/PROJECT_DAY_01.md#api-was-not-initially-listening) |
 | LAB-002 | Done — container build, runtime checks, and troubleshooting evidence recorded | Containerize the existing API and run it with PostgreSQL using Compose | [Day 2 assignment](../days/DAY_02_PREWORK.md#mission) · [Day 2 build, evidence, and troubleshooting](../days/PROJECT_DAY_02.md#project-day-2--containerize-the-api-with-docker-compose) |
+| LAB-003 | Ready — SRE observability build not started | Add API metrics, Prometheus scraping, Grafana data source/dashboard, and a safe missing-target drill | [Day 3 preparation and acceptance criteria](../days/DAY_03_PREWORK.md#mission) |
 
 ## How we track a ticket
 
