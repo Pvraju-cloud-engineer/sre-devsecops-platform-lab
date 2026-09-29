@@ -464,3 +464,54 @@ A named volume keeps PostgreSQL files outside the container's writable layer and
 Follow section 7.3 in order: launch a disposable Amazon Linux 2023 EC2 and connect as ec2-user; inventory the host; install Git, Java 21, Docker, curl, and OpenSSL; enable Docker and reconnect after adding the user to its group; clone only this personal repository; verify branch/commit; run the checked-in Compose installer; generate the ignored local .env; validate Compose; start and verify PostgreSQL; load local variables; run the tests; start Spring Boot in a visible PuTTY window; then use a second session for health, POST, GET, and SQL checks. Finally stop only the API for the controlled drill, diagnose process/listener/database separately, restart it, and prove recovery. Record sanitized results and clean up the AWS resources you created.
 
 The rebuild is complete only when the API response and SQL row agree on the same UUID, the controlled API-stop drill is diagnosed with evidence, and the rebuilt commit/environment are recorded. Watching videos or seeing a container marked Up is not the acceptance check.
+
+
+## Day 1 no-notes recall: five questions and answer key
+
+### Try first without reading the answers
+
+Write or say your answers before expanding the answer key. Take a few minutes for each. This checks recall and explanation, not how fast you respond.
+
+1. What happens from an HTTP request reaching the API to a row being stored in PostgreSQL?
+2. What does a passing Maven test prove, and what does it not prove?
+3. If the API is unreachable but PostgreSQL is healthy, what would you check next?
+4. Why do we use a Compose health check and a named volume?
+5. What Day 1 steps would you repeat from a fresh EC2?
+
+### Clear answer key
+
+**1. Request to database row.** PuTTY gives us an SSH session to the EC2 host as ec2-user. On that host, curl sends an HTTP request to Spring Boot listening on port 8081. Embedded Tomcat accepts it, Spring MVC routes POST /claims to ClaimController, and validation checks that description is not blank. The controller creates a Claim with a generated UUID, status, and timestamp. ClaimRepository uses Spring Data JPA; Hibernate maps the Java entity to SQL; JDBC connects to PostgreSQL at host loopback port 5433. Compose maps host port 5433 to PostgreSQL container port 5432. PostgreSQL stores the row on its mounted named volume. Spring returns HTTP 201 and JSON containing the ID. A later GET by that ID reads the stored claim and returns HTTP 200. In our evidence, we compared that ID and description in the HTTP response, GET response, and SQL query.
+
+**2. Meaning of passing Maven tests.** Our Maven test command compiles the project and runs the repository's two Spring Boot tests. They check creating and reading a claim and rejecting a blank description; the Spring test context also uses the configured PostgreSQL dependency. A pass means those assertions succeeded in that test run and environment. It does not prove the separate foreground API process is currently listening on port 8081, that an external client can reach it, that it will stay available, that an SLO is met, or that data can be recovered from backup. That is why we also checked live health, POST, GET, and SQL separately.
+
+**3. API unreachable while PostgreSQL is healthy.** First confirm the exact symptom and test from the intended host: curl the API health URL. Then inspect the Java process with ps, the TCP listener with ss on port 8081, and the Spring Boot startup/output in the PuTTY session. Confirm the application is configured for port 8081 and did not fail startup. Check whether the DB URL, credentials, and application logs show a separate connection problem. PostgreSQL's health only says the database is accepting connections; it does not say Java is running. In our observed drill, Compose showed PostgreSQL healthy, ps showed no Java process, and ss showed no 8081 listener. We restarted only Spring Boot and verified health, then a representative GET. We did not open the security group because curl was running locally on EC2.
+
+**4. Compose health check and named volume.** Compose health check runs pg_isready so we can distinguish a database container that merely started from PostgreSQL that is ready to accept connections. It is a database readiness signal, not an API health check or a backup test. A named volume stores PostgreSQL files outside the database container's temporary writable layer. Replacing a container while retaining the same volume can retain rows. The volume is still on the same host and can be deleted or lost; it is not a backup or disaster-recovery plan. We preserve it during restart drills and never run docker compose down -v unless intentionally resetting disposable lab data.
+
+**5. Fresh EC2 rebuild.** Launch a disposable Amazon Linux 2023 instance with the intended key, restricted access, and a cleanup plan. Connect as ec2-user; check identity, OS, architecture, memory, disk, and CPU. Install Git, Java 21, Docker, curl, and OpenSSL; start Docker and reconnect after adding the user to its group. Clone only this personal repository and record branch/commit. Install and verify the pinned Compose plugin. Generate the local ignored .env without printing it and confirm Git ignores it. From services/claims-api, validate Compose, start PostgreSQL, inspect service state, and run pg_isready. Load .env into the shell, check Maven, run tests, and start Spring Boot in a visible terminal. From another PuTTY session, check health, POST a synthetic claim, GET its UUID, and verify the matching SQL row. Stop the API for the controlled drill, inspect process/listener/database separately, restart, and verify recovery. Record sanitized evidence and clean up AWS resources, checking the console because stopping an instance can leave other billable resources.
+
+### Day 1 interview questions and what a strong answer includes
+
+**Walk me through the request path.** Name the client, host, port, controller, validation, repository/JPA, JDBC, PostgreSQL, volume, and response code. Explain how the same UUID linked POST, GET, and SQL evidence.
+
+**A health URL returns connection refused. How do you troubleshoot?** State impact and scope, check process/listener/logs, then app configuration and DB separately. In the actual lab drill, DB was healthy but Java and port 8081 were absent. Explain the minimal recovery and how you verified it.
+
+**What does your health check tell you?** Distinguish PostgreSQL readiness, Actuator health, a successful API operation, and a matching SQL row. Say what each check does not prove.
+
+**How do you know the record persisted after restart?** Be precise: we restarted only the API while PostgreSQL and its volume remained running, then retrieved the same UUID and SQL row. This does not prove PostgreSQL restart, EC2 reboot, backup, or restore.
+
+**What is your Day 1 test strategy?** Tests check the specified API behavior in a Spring test context; live health and HTTP calls check the running service; SQL independently verifies the row. Report the test count and whether the command passed, not just “tested.”
+
+**What would you put in an incident or ticket update?** Time, user impact/scope, observed symptom, commands and sanitized evidence, supported diagnosis, action, recovery proof, remaining risk, owner, and follow-up. Separate observed facts from assumptions; keep the write-up blameless and exclude secrets.
+
+**What is the operational lesson from Day 1?** A service has layers and separate owners. Diagnose one layer at a time, use the least risky change, and verify the user path after recovery. A green database container does not mean the API is available.
+
+### Resume and real-team mapping
+
+Day 1 gives hands-on practice with Linux/cloud-host checks, a Java/Spring API, Docker and Compose, PostgreSQL, basic health verification, and evidence-based incident troubleshooting. In a real organization, the application/service team owns API behavior and tests; platform or DevOps engineers commonly own reusable runtime and delivery automation; a database/platform owner handles database platform concerns; SRE partners with service owners on reliability, response, runbooks, recovery evidence, and toil reduction. Team boundaries vary. A ticket should have an assignee, impact/priority, acceptance criteria, reviewer or service owner, communication path, evidence, and follow-up.
+
+This lab's actual evidence is a single-host rebuild, two passing tests, API health and create/read requests, matching SQL data, and one controlled API-stop diagnosis and recovery. It is not evidence of production on-call incidents, multi-tenancy, Kubernetes, dashboards, SLOs, high availability, or disaster recovery. In an interview, describe what you personally built and verified, and clearly label later topics as learning goals.
+
+### How to use this recall page
+
+First answer the five questions without scrolling to the answer key. Mark each as: can explain, partly understand, or need teaching. Then compare with the answers, correct your own notes, and repeat the explanation from memory later. Use the interview prompts to practice a 60-second explanation and a 2-minute troubleshooting walkthrough. If a section remains unclear, bring that answer back and we will teach that specific concept before Day 2 implementation.
