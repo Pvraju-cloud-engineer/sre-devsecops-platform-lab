@@ -515,3 +515,20 @@ This lab's actual evidence is a single-host rebuild, two passing tests, API heal
 ### How to use this recall page
 
 First answer the five questions without scrolling to the answer key. Mark each as: can explain, partly understand, or need teaching. Then compare with the answers, correct your own notes, and repeat the explanation from memory later. Use the interview prompts to practice a 60-second explanation and a 2-minute troubleshooting walkthrough. If a section remains unclear, bring that answer back and we will teach that specific concept before Day 2 implementation.
+
+
+## Day 1 interview question map
+
+Use the [SRE and DevOps Interview Question Bank](../../interview/QUESTION_BANK.md) for expanded answer outlines, evidence prompts, follow-ups, and primary sources. The IDs below are stable: D01-INT means Day 1 interview practice. Try each question without notes first; then use the bank to review.
+
+| ID | Day 1 topic | Interview question |
+|---|---|---|
+| D01-INT-001 | HTTP request path and persistence | Trace a request from POST /claims through Spring Boot to the PostgreSQL row. |
+| D01-INT-002 | Maven, tests, CI foundations | What does ./mvnw test prove, and what does it not prove? |
+| D01-INT-003 | Incident triage and Linux networking | The API is unreachable while PostgreSQL is healthy. What do you check and why? |
+| D01-INT-004 | Docker Compose and storage | What do the Compose health check, port mapping, and named volume each provide? |
+| D01-INT-005 | Repeatable operations and rebuild | How would you recreate Day 1 on a fresh EC2 host and verify each layer? |
+| D01-INT-006 | Persistence and evidence boundaries | What did the API restart test demonstrate, and what recovery claims remain untested? |
+| D01-INT-007 | Ticket updates and team ownership | What would you record in the ticket, and which team owns each follow-up? |
+
+These questions refer to this lab's checked-in code and observed practice. For each answer, distinguish what you built or tested from what you only studied.
