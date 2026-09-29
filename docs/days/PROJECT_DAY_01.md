@@ -312,3 +312,123 @@ Record instance ID/region/state/type, storage, public IP/security group, Java pr
 **Demonstrated:** fresh repo rebuild, two tests passing, DB readiness, API health, synthetic HTTP create/read, SQL row, data readable after API restart, controlled API-stop diagnosis/recovery.
 
 **Not demonstrated yet:** PostgreSQL restart, EC2 reboot, backup/restore, managed secrets, CI/CD, production dashboards/alerts, measured SLI/SLO/error budget, multi-tenancy, HA, Kubernetes/EKS, Terraform provisioning, canary/blue-green, disaster recovery. These are future assignments; build and record evidence before claiming them.
+
+
+### 7.7 Guided Day 1 command walkthrough: purpose, result, and project connection
+
+Run one command at a time in PuTTY and read the result. Day 1 is deliberately small: Spring Boot runs as a Java process on one EC2/Linux host; PostgreSQL runs in a Docker Compose container on that host. It teaches habits used on larger services, but is not the multi-cluster architecture described in the resume.
+
+#### Request path and ownership
+
+Laptop/PuTTY --SSH key--> EC2 Linux --> Spring Boot API :8081 --JDBC--> host loopback :5433 --> Compose port mapping --> PostgreSQL container :5432 --> named volume
+
+| Part | Responsibility and typical owner |
+|---|---|
+| EC2, Linux, Java, Docker | Cloud/platform engineer provisions host/runtime; SRE checks capacity, access, recovery. |
+| ClaimController and API tests | Application engineer owns endpoint behavior and validation; SRE troubleshoots with that owner. |
+| JPA/repository and schema | App team owns persistence code; DBA/data platform advises on production data reliability. |
+| PostgreSQL service/volume | Lab owner operates it; production may have a database/platform team. |
+| Incident evidence/runbook | SRE/operations coordinates impact, diagnosis, mitigation, recovery proof, follow-up. |
+
+In this exercise you are the change owner: inventory, rebuild the repo, start dependencies, test, observe an API outage, restore, document. A real ticket names an assignee, service owner/reviewer, priority/impact, acceptance evidence, communication/escalation path, and follow-up. SRE does not automatically own every app or DB code change.
+
+#### 1. Identify login, OS, and host capacity
+
+<strong>Run:</strong> whoami; id; cat /etc/os-release; uname -m; pwd; free -h; df -h /; nproc
+
+- whoami: active account (expected ec2-user). SSH key login does not make it root.
+- id: numeric user/group IDs and active memberships. Docker permission was denied immediately after usermod because the SSH session had old groups. Reconnect; id then included docker. Docker group grants effectively root-level access, so use it only on this disposable lab host.
+- cat /etc/os-release: reads OS identity so you choose its package manager. Leading slash means absolute path from filesystem root. cat etc/os-release failed because that relative path was searched under the home directory.
+- uname -m: CPU architecture (x86_64 here), used to choose a compatible binary.
+- pwd: current directory; Compose finds YAML relative to where you run it.
+- free -h, df -h /, nproc: readable memory, root disk capacity, CPU count. Baseline evidence for OOM, full disk, or sizing; alone these do not prove a performance incident.
+
+#### 2. Check tools and source revision
+
+Run git --version, java --version, docker --version, docker compose version, and from service directory ./mvnw -version. These answer “is the required tool installed, and which version?” Command not found means fix the prerequisite/path before diagnosing the app. Maven Wrapper selects the repo-pinned Maven version rather than arbitrary system Maven.
+
+At repo root, git status --short --branch reports branch and local edits; git log -1 --oneline records exact revision. A clean status and known commit make a rebuild reproducible. Work only in the personal learning repo.
+
+Docker Engine existed but the package source lacked Compose plugin. bash -n scripts/bootstrap/install-compose-plugin.sh parses syntax without executing the script. The installer downloads a pinned plugin, verifies SHA-256, installs for this user, then prints its version. Checksum mismatch means stop; syntax success alone does not prove install works.
+
+#### 3. Make local config and start PostgreSQL
+
+Run the initializer once from repo root: ./scripts/bootstrap/init-claims-api-env.sh. Then:
+
+<pre>cd ~/sre-devsecops-platform-lab/services/claims-api
+pwd
+git check-ignore -v .env
+docker compose config --quiet
+docker compose up -d --wait --wait-timeout 60
+docker compose ps
+docker compose exec postgres pg_isready -U claims -d claims</pre>
+
+The initializer creates ignored local .env with a random password without printing it. .env.example documents variable names/placeholders; .env is local secret config. git check-ignore -v proves the ignore rule. Never print, commit, or paste the secret.
+
+Compose reads compose.yaml. postgres is service name; image is packaged software; container is its running instance; named volume claims-db-data holds database files. Host port 5433 is bound to 127.0.0.1 and mapped to container port 5432; loopback avoids exposing DB on public interface. Spring on EC2 connects to host 5433. config --quiet validates/resolves configuration without starting services. up -d starts in background; --wait waits for health check. ps shows state/ports. exec ... pg_isready checks DB readiness inside container; accepting connections proves DB readiness, not API health.
+
+The named volume survives container replacement while retained; it is not a backup. docker compose down removes containers/network but keeps volume. down -v deletes volume and rows: only an intentional disposable reset.
+
+Why PostgreSQL/Spring Boot? PostgreSQL provides relational tables, SQL, transactions, constraints, and an easy container image. MySQL could work, but this repo config uses PostgreSQL. Spring Boot is Java/resume-aligned and provides REST, validation, persistence, Actuator. These are project-fit choices, not claims alternatives are inferior.
+
+#### 4. Know what application files do
+
+- pom.xml: Maven project definition: coordinates, Java/framework versions, libraries, plugins. A missing test library caused the Jackson ObjectMapper compile error; first compiler message pointed to the absent test classpath dependency.
+- ClaimsApiApplication.java: Java entry point; starts Spring/component discovery.
+- ClaimController.java: HTTP boundary at /claims; POST validates and saves, GET looks up UUID; blank description is 400 and unknown UUID is 404.
+- Claim.java: JPA entity maps Java fields to claims row: UUID, description, status, created time.
+- ClaimRepository.java: Spring Data interface for CRUD operations.
+- application.properties: port 8081 and JDBC settings from environment variables, separating config from code.
+- src/test/.../ClaimsApiApplicationTests.java: automated create/read and blank-input behavior checks.
+
+Request flow: HTTP -> Spring MVC/controller -> validation -> repository/JPA/Hibernate -> JDBC -> PostgreSQL row -> JSON response. Tests prove their assertions in a test context, not that a separate live process stays up.
+
+#### 5. Test, start, verify
+
+From service directory, load local settings into this shell and run tests:
+
+<pre>set -a
+source .env
+set +a
+./mvnw test
+./mvnw spring-boot:run</pre>
+
+source reads local shell assignments. set -a exports assignments for child processes such as Maven/Spring; set +a turns auto-export off. Never cat .env or echo its password. test compiles and runs automated checks. On failure, read the first specific error, identify missing/mismatched dependency or code, fix cause, rerun. spring-boot:run keeps API in foreground and logs in that PuTTY window; Ctrl+C stops Java. This repo has no restart.sh or bootstrap.sh.
+
+In a second PuTTY window, test progressively:
+
+<pre>curl -i http://127.0.0.1:8081/actuator/health
+curl -i -X POST http://127.0.0.1:8081/claims -H 'Content-Type: application/json' -d '{"description":"practice claim"}'
+curl -i http://127.0.0.1:8081/claims/PASTE_RETURNED_UUID_HERE
+docker compose exec postgres psql -U claims -d claims -c "SELECT id, description, status, created_at FROM claims;"</pre>
+
+curl is HTTP client. -i includes status/headers; -X POST selects create; -H declares JSON; -d supplies body. Expected: health 200/UP, POST 201 with UUID, GET 200 with same claim, SQL row matching response. Blank description returns 400; unknown valid UUID returns 404. DB readiness, health, API request, and SQL are separate evidence; none substitutes for all the others.
+
+#### 6. Troubleshoot with evidence, not guesses
+
+Loop: symptom -> impact/scope -> evidence -> hypothesis -> smallest safe action -> recovery proof -> ticket update. Preserve timestamps/logs; redact secrets; use synthetic data. Do not restart every layer before isolating the fault.
+
+| Scenario | Checks and interpretation | Recovery proof |
+|---|---|---|
+| Docker permission denied | id checks groups; sudo systemctl status docker checks daemon; reconnect refreshes membership; docker ps tests access. | New session shows docker group; docker ps works. |
+| Compose command missing | Compare Engine and Compose versions; Engine can exist without plugin. Run installer and inspect checksum. | Compose version prints; config parses. |
+| Service “not running” | Check docker compose ps; exact service is postgres, not typo postgress/postgresdy. | docker compose exec postgres pg_isready -U claims -d claims accepts connections. |
+| API cannot connect to DB | Check container/logs/readiness; verify app URL uses host 127.0.0.1:5433, not container 5432. | App starts; health and POST/GET/SQL work. |
+| API connection refused on 8081 | Compose lists DB only. Check ps -ef then grep '[j]ava', ss -lntp | grep ':8081', then Spring logs. No Java/listener means API stopped; DB health is separate. | Restart API with env loaded; health 200/UP; existing GET and SQL succeed. |
+| Jackson compile error | Compare first compiler error/import with test dependencies in pom.xml; fix classpath, not unrelated code. | ./mvnw test passes with test count. |
+| POST returns 400 | Check JSON, content type, validation message; @NotBlank deliberately rejects blank description. | Valid synthetic body returns 201; invalid remains 400. |
+| Data after API restart | Keep named volume; do not use down -v; query same UUID after restart. Volume is not backup. | GET and SQL still return row. |
+
+Observed outage drill: health curl failed; Compose showed PostgreSQL healthy; Java process and port 8081 were absent. Diagnosis was stopped API, not DB. Restarting Spring restored 200/UP; POST -> GET -> SQL proved persistence. Ticket evidence: time/timezone, commit, impact, sanitized results, diagnosis, mitigation, recovery proof, follow-up owner.
+
+#### Interview retrieval practice
+
+1. Walk through request: “HTTP reaches Spring MVC on EC2 port 8081. Controller validates description; repository/JPA uses JDBC via host 5433 mapped to PostgreSQL container 5432. DB writes to named volume. I compared POST UUID, GET response, SQL row.”
+2. Docker permission after usermod? “Old session had old groups. Reconnect refreshed them; id/docker ps proved access. Docker group is highly privileged.”
+3. Isolate API outage? “DB health/readiness passed; process/listener showed Java absent on 8081. I restarted only API and proved health plus data path.”
+4. What does passing test prove? “Only asserted behavior in test context—not deployment, sustained availability, SLO, or backup recovery.”
+5. Incident report? “Impact, time, evidence, scoped diagnosis, safe mitigation, recovery proof, owner/follow-up; blameless and no secrets.”
+
+Day 1 maps to resume themes: Linux/cloud operations, Docker, Java/Spring microservice, PostgreSQL, tests, health endpoint, incident triage, runbooks, operational evidence. CI/CD, Terraform, Kubernetes, observability stack, multi-tenancy, and SLO/error budgets are later work, not built yet. Before Day 2, explain request path unaided, distinguish image/container/volume and host/container ports, run health->POST->GET->SQL, diagnose stopped API, and rebuild from fresh EC2/repo clone with commit recorded.
+
+### 7.8 Troubleshooting: scenarios and evidence
