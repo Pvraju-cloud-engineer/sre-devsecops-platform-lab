@@ -17,5 +17,22 @@ services:
       retries: 5
       start_period: 10s
 
+  claims-api:
+    image: claims-api:day2
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: ${SERVER_PORT:-8081}
+      DB_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB in .env}"
+      DB_USERNAME: ${DB_USERNAME:?Set DB_USERNAME in .env}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   claims-db-data:
