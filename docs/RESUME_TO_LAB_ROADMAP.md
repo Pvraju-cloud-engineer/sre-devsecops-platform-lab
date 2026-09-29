@@ -280,3 +280,50 @@ Use each job description as a coverage checklist. Resume-aligned subjects remain
 We will rotate through resume deep-dive, Linux/scripting, AWS networking/IAM, Terraform module/state design, CI/CD release, Docker/EKS/ECS/Istio, observability/SLO, incident/DR, system design, and behavioral/ownership rounds. Some sessions will be a timed live-debugging exercise; others will require a whiteboard explanation, command-writing, or a design review. Follow-ups will test alternatives, failure handling, security, cost, and what evidence proves the result.
 
 A topic is interview-ready when you can explain it from memory, build or inspect the lab implementation, diagnose a new failure from evidence, state a safe recovery and trade-offs, and answer follow-up questions. For tools that are optional, proprietary, or expensive, be clear about what you implemented hands-on and what you learned comparatively.
+
+
+## Daily resume-to-learning traceability
+
+**This is the governing rule for every day:** each new topic, command, file, build, drill, and interview question must connect to a responsibility or skill named in the resume. SRE is the primary career track; DevOps and DevSecOps are included as complementary work and as the earlier phase of the resume.
+
+Each daily report must include a resume mapping table with these columns:
+
+| Resume responsibility/skill | What this day teaches | Repo artifact or command | Evidence actually observed | Status / next practice |
+|---|---|---|---|---|
+
+Use status words precisely: **planned** means not started; **built** means files were created; **verified** means the stated check passed; **practiced** means the failure drill was actually run and its evidence recorded. A topic is not interview-ready just because a file mentions it.
+
+### Current day-by-day map
+
+| Day | Resume responsibility/skill being practiced | Learning/build connection | Evidence and boundary |
+|---|---|---|---|
+| Day 1 — LAB-001 | SRE foundation: understand a service, check availability, investigate a stopped process, verify persistence; supports production support and incident triage. DevOps foundation: repeatable Java/Maven build and local dependency setup. | Linux/EC2 baseline → HTTP request → Spring Boot controller/repository → PostgreSQL; tests, health check, API/SQL verification, API-stop troubleshooting. | The Day 1 report records the fresh rebuild, test/API/SQL checks, and observed stop/recovery drill. This is a single-host practice service; it teaches request-path and triage fundamentals. |
+| Day 2 — LAB-002 | SRE: separate service and dependency health, diagnose a DNS/build failure by evidence, verify recovery. DevOps/DevSecOps: container build, Compose networking, non-root runtime, local secret exclusion. | Dockerfile multi-stage build → API and database containers → Compose DNS/health/volume → HTTP and SQL verification; Buildx and wrong-host drills. | The Day 2 report records successful image/runtime checks, API and DB evidence, and the two completed drills. The Docker practices build toward containerized microservice operations and hardened image basics. |
+| Day 3 — LAB-003 | SRE primary: observability, useful dashboards, operational signals, safe monitoring triage and runbook thinking. | Spring metrics → Prometheus scrape target → queries → Grafana data source/dashboard → missing-target drill. | **Planned only** until implemented and verified. Tomorrow's prework defines the learning and acceptance checks; the Day 3 report must replace planned status with actual evidence. |
+
+### Resume topics to connect in later increments
+
+| Resume area | Planned lab progression | SRE / DevOps connection |
+|---|---|---|
+| Production support, incidents, on-call, batch monitoring/recovery | Repeatable incident tickets, batch-job failure/replay drills, runbooks, handoffs, post-incident actions | SRE owns impact assessment, mitigation, recovery evidence, and learning; service/platform teams coordinate fixes. |
+| Grafana, Prometheus, Splunk/APM, centralized telemetry | Metrics/dashboard first; then structured logs, correlation fields, trace context, queries, alerting | SRE turns signals into triage and response; DevOps makes agents/configuration repeatable. |
+| SLI, SLO, error budget, burn rate, MTTR | Define user-facing indicators from observed service behavior; practice alert/noise and incident decisions | SRE uses reliability objectives to prioritize availability work and changes; metrics must have clear definitions and windows. |
+| AWS, Terraform, networking, IAM, multi-account infrastructure | Build small isolated infrastructure, reusable modules, state/plan/review, identity and network troubleshooting | DevOps/platform automates infrastructure; SRE verifies service reliability, access boundaries, recovery and operational readiness. |
+| Jenkins, GitHub Actions, release governance, blue/green/canary, rollback | Add tested pipeline stages, image tagging/scanning, deployment gates, controlled rollout and rollback | DevOps owns delivery automation; SRE defines health signals, release safety and rollback evidence; security owns policy partnership. |
+| Docker, Kubernetes/EKS/AKS, autoscaling, Karpenter, multi-tenancy | Progress from Compose to Kubernetes workloads, probes, requests/limits, scheduling, RBAC/network policy, scaling and tenant isolation | Platform/DevOps builds the paved road; SRE troubleshoots scheduling, saturation, dependency limits and tenant impact. |
+| SQS, KEDA, asynchronous/batch processing | Add queue/worker lab, backlog and age signals, retry/idempotency, safe replay and scaling limits | SRE protects latency/error objectives and databases; application/platform owners define processing semantics and capacity. |
+| DR, multi-region, cost optimization/Kubecost | Recovery objectives, restore/failover drills, capacity and cost baselines, rightsizing trade-offs | SRE owns recovery readiness and service objectives; DevOps automates repeatable infrastructure; cost changes must be measured. |
+| DevSecOps: Jenkinsfiles, Trivy, SonarQube, Terraform modules, Docker hardening | Add secure build stages, dependency/image scanning, quality gates, secret handling, infrastructure review | Security policy is shared with security partners; DevOps integrates gates; SRE considers release risk and operational impact. |
+
+These are roadmap topics, not completed work. We add them only when the previous increments are understood and the repo has a bounded ticket, build steps, evidence, troubleshooting, interview practice, and cleanup instructions.
+
+### Daily report review questions
+
+At closeout, answer all of these in that day's report:
+
+1. Which exact resume responsibility does this ticket practice, and why is it relevant to an SRE-first role?
+2. What did I personally learn, build, run, and verify today? Link the files and commands.
+3. What symptom or failure did I investigate, what evidence identified the fault boundary, and how did I verify recovery?
+4. Which parts were only discussed or planned and therefore still need hands-on practice?
+5. How would I explain this work in an interview without overstating scope or production ownership?
+6. What is the next resume topic, and what prerequisite from this day does it use?
