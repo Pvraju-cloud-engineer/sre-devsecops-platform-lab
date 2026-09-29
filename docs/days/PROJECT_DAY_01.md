@@ -432,3 +432,35 @@ Observed outage drill: health curl failed; Compose showed PostgreSQL healthy; Ja
 Day 1 maps to resume themes: Linux/cloud operations, Docker, Java/Spring microservice, PostgreSQL, tests, health endpoint, incident triage, runbooks, operational evidence. CI/CD, Terraform, Kubernetes, observability stack, multi-tenancy, and SLO/error budgets are later work, not built yet. Before Day 2, explain request path unaided, distinguish image/container/volume and host/container ports, run health->POST->GET->SQL, diagnose stopped API, and rebuild from fresh EC2/repo clone with commit recorded.
 
 ### 7.8 Troubleshooting: scenarios and evidence
+
+
+## 16. Day 1 recall review: corrections and rebuild checkpoints
+
+Use this section to correct your first explanation and to check whether you can rebuild Day 1 tomorrow. Keep the original guide above as the main tutorial; this section records details that are easy to overstate.
+
+### Request path: say exactly what this lab did
+
+- PuTTY provides the SSH terminal. In our checks, curl ran on the EC2 host and called 127.0.0.1:8081, which is that host's loopback address. This path does not require opening the API to the internet or changing its security group. The API is Spring Boot running as a host Java process.
+- The API's real contract is POST /claims with a nonblank description. It returns HTTP 201 and a generated UUID. GET /claims/{UUID} returns that record (200) or 404 if it is absent. Blank descriptions are rejected with 400. This app does not have a title or amount field.
+- JDBC connects from the host app to host loopback port 5433. Compose publishes that to PostgreSQL's container port 5432. Compose's YAML configures the mapping; Docker implements the port forwarding.
+
+### What each success signal proves
+
+- ./mvnw test compiles and runs the tests in this repository. The two tests use Spring Boot's test context and MockMvc; they check create/read and blank-input rejection. They are not mocked-only business-logic tests. They do not prove that a separate Spring process is listening on port 8081, that a remote client can reach it, or that the service meets a production availability target.
+- Compose's PostgreSQL health check and pg_isready are readiness signals. They do not prove the API's database credentials work or that a claim was written.
+- Actuator HTTP 200/UP proves that the health endpoint answered at that time. POST 201 proves the API accepted the request. GET 200 proves the API returned the record. A matching SQL row independently confirms database persistence. Record these as separate checks.
+- We restarted Spring Boot while PostgreSQL and its volume remained running. Reading the same row afterward proves the restarted API could read existing data from that still-running database. It does not prove a PostgreSQL restart, EC2 reboot, backup, or restore.
+
+### Troubleshooting safely
+
+For connection refused on localhost port 8081, check docker compose ps for the database, ps -ef | grep '[j]ava' for the API process, ss -lntp | grep ':8081' for the listener, and the PuTTY window where Spring Boot was started for logs. In this lab the API runs in the foreground, so a separate log file may not exist. A missing listener points to a stopped app, failed startup, wrong port, or bind issue; a healthy database alone cannot establish which one.
+
+Never run cat .env or paste secrets into a ticket/chat. To confirm the local file is excluded from Git, use git check-ignore -v services/claims-api/.env; do not print its contents. If DB authentication fails, inspect the application error without disclosing the password and correct the local configuration.
+
+A named volume keeps PostgreSQL files outside the container's writable layer and can survive removal/recreation of that container while the volume and host storage remain. It is not a backup and does not protect against deleting the volume, losing host storage, or terminating an instance whose storage is deleted. docker compose down -v intentionally removes the named volume and its lab rows; use it only for an intentional reset of disposable data.
+
+### Tomorrow's Day 1 rebuild acceptance check
+
+Follow section 7.3 in order: launch a disposable Amazon Linux 2023 EC2 and connect as ec2-user; inventory the host; install Git, Java 21, Docker, curl, and OpenSSL; enable Docker and reconnect after adding the user to its group; clone only this personal repository; verify branch/commit; run the checked-in Compose installer; generate the ignored local .env; validate Compose; start and verify PostgreSQL; load local variables; run the tests; start Spring Boot in a visible PuTTY window; then use a second session for health, POST, GET, and SQL checks. Finally stop only the API for the controlled drill, diagnose process/listener/database separately, restart it, and prove recovery. Record sanitized results and clean up the AWS resources you created.
+
+The rebuild is complete only when the API response and SQL row agree on the same UUID, the controlled API-stop drill is diagnosed with evidence, and the rebuilt commit/environment are recorded. Watching videos or seeing a container marked Up is not the acceptance check.
