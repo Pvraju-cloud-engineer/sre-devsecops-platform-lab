@@ -99,69 +99,120 @@ Application developers normally change code/tests; DevOps/platform engineers oft
 11. Stop API for controlled drill; inspect app process/listener and DB independently; restart; verify health + GET.
 12. Record cleanup; stopping EC2 can leave storage and other billable resources. Deleting a named volume deletes its data. Verify the AWS console state.
 
-## 7. Commands, examples, definitions
+## 7. Build, rebuild, ownership, and command guide
 
-Run in PuTTY one at a time. Use plain URL in curl, not Markdown-link syntax. Never put real passwords in commands/history.
+This is a working runbook. Build means creating the service/configuration the first time. Rebuild means reproducing it on a fresh EC2 using only the checked-in repo plus documented prerequisites. Each command answers a question about one layer; success at one layer does not prove the whole service works.
 
-### Linux identity/resources
+### 7.1 Who owns each part in a typical organization?
 
-    whoami
-    hostname
-    pwd
-    id
-    cat /etc/os-release
-    uname -m
-    free -h
-    df -h /
-    nproc
+| Work | Typical owner | Day 1 responsibility/evidence |
+|---|---|---|
+| API behavior | Application developer/service team | Defines HTTP contract, validation, persistence behavior, tests, and useful logs. Files: ClaimController, Claim, ClaimRepository, Spring tests. |
+| Host/runtime and automation | DevOps/platform engineer | Provides supported host setup, Java/Docker, configuration, repeatable build/run/release automation. Files: bootstrap scripts, Maven Wrapper, Compose YAML. |
+| Database platform | DBA or database/platform team | Sets database standards, access, backup, migration, performance, recovery. Here PostgreSQL is a local practice dependency with disposable synthetic data. |
+| Service reliability | SRE with service owners | Defines health signals, runbooks, incident response, recovery evidence, reliability targets, and toil reduction. Here: separate API/DB checks and the controlled outage drill. |
+| Ticket execution/review | Assigned engineer; reviewer/manager | Engineer follows acceptance criteria, records evidence and risks, escalates with findings, and hands off status. In this lab you are the engineer; I assign/review practice tickets. |
 
-whoami=current account; hostname=host name; pwd=current directory; id=user/group IDs and memberships; /etc/os-release=distro/version (absolute path; etc/os-release is relative and can fail); uname -m=CPU architecture; free -h=memory; df -h /=root filesystem capacity; nproc=available processors.
+Titles vary; teams may combine duties. SRE does not automatically own every app or database change. Service owners remain accountable and partner with SRE, platform, and DBA teams.
 
-### Git baseline
+### 7.2 First build: what is created and why
 
-    git clone --branch Pvraju-cloud-engineer-patch-3 --single-branch https://github.com/Pvraju-cloud-engineer/sre-devsecops-platform-lab.git
-    cd ~/sre-devsecops-platform-lab
-    git status --short --branch
-    git log -1 --oneline
-    find . -maxdepth 3 -type f -not -path './.git/*' | sort
+1. Define a simple contract: POST /claims accepts JSON, validates description, stores a generated ID/status/time, returns HTTP 201. GET /claims/{id} returns the record or 404. The application/service owner defines this behavior.
+2. Create the Java service: Spring Boot starts it; Spring MVC maps HTTP routes; Bean Validation rejects blank input; Spring Data JPA maps Java objects to SQL; PostgreSQL stores rows. This gives us a real request path to operate and troubleshoot.
+3. Make setup repeatable: pom.xml declares dependencies/plugins; Maven Wrapper pins Maven; compose.yaml defines PostgreSQL, local port, named data volume and health check; .env.example documents settings; generated .env holds a random local password and is ignored by Git.
+4. Prove behavior: Maven tests check create/read and invalid input. Then start PostgreSQL, run the API, check health, send HTTP requests, and verify the same ID in SQL.
+5. Practice operations: stop only the API, use process/port/container evidence to locate the fault, restore it, verify health/data, and write a ticket update. This is a controlled drill, not a production incident.
 
-clone downloads code/history; --branch selects branch; status shows branch/changes; log shows latest commit; find inventories files. git log -1 --online was a typo; use --oneline and read error messages.
+### 7.3 Rebuild from a fresh EC2: repeatable sequence
 
-### Compose / database
+Use a disposable Amazon Linux 2023 host, intended SSH key, restricted inbound access, and cleanup plan. Record region/type/disk/security group. SSH as ec2-user; use sudo only for host administration. Do not use a work/Cisco checkout.
 
-    cd ~/sre-devsecops-platform-lab/services/claims-api
-    docker --version
-    docker compose version
-    docker compose config --quiet
-    docker compose up -d --wait --wait-timeout 60
-    docker compose ps
-    docker compose logs --tail 50 postgres
-    docker compose exec postgres pg_isready -U claims -d claims
+1. Confirm identity and capacity: whoami, hostname, pwd, id, cat /etc/os-release, uname -m, free -h, df -h /, nproc.
+2. Install host prerequisites and start Docker: sudo dnf install -y git java-21-amazon-corretto docker curl openssl; sudo systemctl enable --now docker; sudo usermod -aG docker ec2-user. Log out/reconnect to refresh group membership.
+3. Clone only the personal repo main branch: git clone --branch main --single-branch https://github.com/Pvraju-cloud-engineer/sre-devsecops-platform-lab.git. Enter it, then inspect git status --short --branch and git log -1 --oneline.
+4. Check/install Compose: bash -n scripts/bootstrap/install-compose-plugin.sh; run ./scripts/bootstrap/install-compose-plugin.sh; verify docker compose version.
+5. Create local config/secret: run ./scripts/bootstrap/init-claims-api-env.sh; verify with git check-ignore -v services/claims-api/.env. Never print or commit .env.
+6. Start database: cd services/claims-api; docker compose config --quiet; docker compose up -d --wait --wait-timeout 60; docker compose ps; docker compose exec postgres pg_isready -U claims -d claims.
+7. Test and run API: set -a; source .env; set +a; ./mvnw -version; ./mvnw test; ./mvnw spring-boot:run. Keep this terminal open for logs.
+8. In a second PuTTY session, run health, POST, GET, SQL checks in 7.4. Save the returned UUID. Perform the controlled API stop/recovery drill in 7.5.
 
-Docker Engine and Compose are separate checks. config validates YAML/env; up -d starts background services and wait awaits health; ps lists Compose services only; logs reads service output; exec runs a command inside exact service postgres; a typo yields service-not-found; pg_isready checks PostgreSQL readiness, not API behavior.
+### 7.4 Command guide: what it does, when to use it, and project value
 
-### Maven / app
+#### Host and identity: use before install/debug
 
-    cd ~/sre-devsecops-platform-lab/services/claims-api
-    set -a
-    source .env
-    set +a
-    ./mvnw -version
-    ./mvnw test
+| Command | What/when | Mapping to this lab |
+|---|---|---|
+| whoami | Prints current login; check when permissions or paths surprise you. | Expect ec2-user, not an accidental root session. |
+| hostname | Prints host name; use to distinguish SSH sessions. | Confirms which EC2 instance PuTTY reached. |
+| pwd | Prints current directory; use before relative paths or Git edits. | Should be inside /home/ec2-user/sre-devsecops-platform-lab, so you do not edit another checkout. |
+| id | Shows UID and groups; use after Docker group changes. | Reconnect until docker appears in groups; that explains docker socket permission errors. |
+| cat /etc/os-release | Displays Linux release; use before choosing package manager/package names. | Amazon Linux 2023 means dnf. cat etc/os-release failed because it omitted the leading slash; /etc/... is an absolute path. |
+| uname -m | Shows CPU architecture; use before architecture-specific binary install. | x86_64 selects matching Compose plugin. |
+| free -h; df -h /; nproc | Show memory, root disk capacity, CPU count in readable units. Use for OOM/disk-full/slow-build investigations. | Records host baseline; it does not prove application health. |
 
-source loads local variables; set -a exports them to child processes, set +a stops auto-export. They configure DB URL/user/password and server port. Keep .env secret. A compile error is before tests run; assertion failure means code compiled but behavior differs. The test command does not keep the API running. Start app in a visible terminal with environment loaded; keep logs accessible.
+#### Git/bootstrap: use before starting services
 
-### HTTP, process, port, SQL
+| Command | What/when | Mapping to this lab |
+|---|---|---|
+| git clone --branch main --single-branch URL | Downloads one branch into a new directory on a fresh host. | Reproduces tracked files. Never put a token in the URL; use only the personal repo. |
+| git status --short --branch | Shows branch and local tracked/untracked changes; use before/after a ticket. | Confirms source state; .env should not appear because it is ignored. |
+| git log -1 --oneline | Shows latest commit hash/subject; use to record exact revision. | Reviewer can tell which repo version was rebuilt. |
+| bash -n script.sh | Parses Bash syntax without executing; use before changed scripts. | Catches syntax errors but does not prove downloads/install succeed. |
+| ./scripts/bootstrap/install-compose-plugin.sh | Installs pinned Compose CLI plugin and verifies SHA-256 before install. | Needed because this host's package repo lacked the Compose plugin. Version output confirms CLI availability; checksum mismatch must stop install. |
+| ./scripts/bootstrap/init-claims-api-env.sh | Generates random local DB password and .env from example without printing secret; run once per clean clone. | Gives Compose/Spring matching configuration; refuses to overwrite an existing secret. |
+| git check-ignore -v services/claims-api/.env | Shows which ignore rule excludes a file; run before staging. | Must show the .gitignore rule. Never cat, stage, or share .env. |
 
-    curl -i http://127.0.0.1:8081/actuator/health
-    curl -i -X POST http://127.0.0.1:8081/claims -H 'Content-Type: application/json' -d '{"description":"synthetic Day 1 test"}'
-    curl -i http://127.0.0.1:8081/claims/PASTE_RETURNED_UUID_HERE
-    docker compose exec postgres psql -U claims -d claims -c "SELECT id, description, status, created_at FROM claims;"
-    ps -ef | grep '[j]ava'
-    ss -lntp | grep -E ':8081|:5433'
+#### Docker Compose/PostgreSQL: database layer
 
-curl -i shows status/headers/body. Use POST UUID for GET. 201=created; 200=success; 400=invalid request; 404=record absent. SQL independently confirms row. ps checks process; bracket grep avoids matching itself; ss shows listening TCP ports. Compose does not show host Java.
+| Command | What/when | Mapping to this lab |
+|---|---|---|
+| docker compose config --quiet | Validates YAML and resolves variables without starting containers; use after config edits. | Exit code 0/empty output means Compose model parsed and required values resolved. |
+| docker compose up -d --wait --wait-timeout 60 | Creates/starts services detached and waits for health check up to 60 sec. | Starts PostgreSQL; wait is more meaningful than merely asking it to start. Still inspect health/readiness. |
+| docker compose ps | Lists containers in this Compose project and their state/ports. | Shows PostgreSQL only; Spring runs as Java on EC2, not in Compose. |
+| docker compose logs --tail 50 postgres | Reads recent DB logs; use when health/startup fails. | Look for initialization/auth/config errors or ready-to-accept-connections. Do not expose secrets in shared evidence. |
+| docker compose exec postgres pg_isready -U claims -d claims | Runs PostgreSQL readiness probe inside container; -U selects DB user, -d database. | “accepting connections” proves DB listener readiness for this DB/user; not app health. postgres is exact Compose service name (not postgress/postgresdy). |
+| docker compose exec postgres psql -U claims -d claims -c "SELECT ..." | Runs SQL in container; -c executes one statement. Use for independent persistence proof. | Compare SQL UUID/description with POST response to verify stored row. |
+| docker compose down | Stops/removes Compose containers/network but retains named-volume data. | Can stop DB normally; next up can reuse data. docker compose down -v deletes the volume/rows; only use for intentional reset of disposable data. |
 
+#### Maven, Spring, HTTP: application layer
+
+| Command | What/when | Mapping to this lab |
+|---|---|---|
+| set -a; source .env; set +a | Exports variables from local config into current shell for child process. Use before Spring launch. | Supplies DB_URL/DB_USERNAME/DB_PASSWORD. Do not echo values; this is lab convenience, not a production secrets manager. |
+| ./mvnw -version | Runs checked-in Maven Wrapper and prints Maven/Java versions. | Confirms pinned Maven and Java prerequisite; avoids relying on system Maven. |
+| ./mvnw test | Resolves dependencies, compiles, runs tests; use after code changes and before packaging. | Checks create/read and blank-input behavior. Earlier ObjectMapper compile error meant test dependency missing from pom.xml. Passing tests do not prove a live app is available. |
+| ./mvnw package | Runs Maven lifecycle and creates JAR under target; use when making an artifact for Docker/CI. | Later image/CI work will consume it; target is generated and Git-ignored. |
+| ./mvnw spring-boot:run | Starts API in foreground with logs; use after DB ready and env loaded. | Default lab port is 8081. Ctrl+C stops this Java process. |
+| ps -ef | Lists processes; combine with grep '[j]ava' to find Java without matching grep itself. Use after curl failure. | No Java process suggests app stopped/failed startup; inspect the visible startup logs. |
+| ss -lntp | Shows TCP listeners/process when permitted; filter for :8081 or :5433. Use to check binding/port conflict. | No 8081 listener explains connection refusal; Java listener supports app-start diagnosis. |
+| curl -i http://127.0.0.1:8081/actuator/health | Sends HTTP GET; -i includes status/headers, 127.0.0.1 means this EC2 host. | 200 and UP proves health endpoint answered, not a complete monitoring/SLO system. |
+| curl -i -X POST http://127.0.0.1:8081/claims -H 'Content-Type: application/json' -d '{"description":"practice claim"}' | Sends JSON POST; -X method, -H header, -d body. | Expect 201 plus generated UUID/status/time. Use synthetic content only. |
+| curl -i http://127.0.0.1:8081/claims/UUID | Sends GET; replace UUID with ID returned by POST. | Expect 200 and same record. Unknown ID gives 404; blank description POST gives 400. |
+
+Command-reading basics: spaces separate arguments; a pipe sends output to another command; grep filters text. Run one command at a time while learning so the failing step is visible. Quotes protect JSON/space characters from the shell. sudo means administrator privilege; do not use it by habit. Flags mean different things in different commands; use that command's --help/manual before reusing them.
+
+### 7.5 Troubleshooting: scenarios and evidence
+
+Think in this order: symptom → user impact → scope → evidence → hypothesis → one safe change → recovery proof → ticket update. Check layers separately; do not restart everything before isolating the fault.
+
+| Symptom | Checks | Interpretation/action | Recovery proof |
+|---|---|---|---|
+| docker permission denied | id; sudo systemctl status docker; reconnect; docker ps | Daemon may be stopped or login lacks refreshed docker group. Group membership applies on new login. Docker group grants effectively root-level access; only on disposable lab host. | id includes docker and docker ps succeeds. |
+| docker compose unknown | docker --version; docker compose version; run pinned installer, inspect checksum result. | Engine exists but CLI plugin is missing. | Compose version prints. |
+| DB unhealthy / API cannot connect to 5433 | docker compose ps; docker compose logs --tail 50 postgres; pg_isready; docker compose config --quiet. | Identify startup/config/readiness issue. Host 5433 maps to container 5432; Spring JDBC URL must use 127.0.0.1:5433. | Container healthy; readiness says accepting connections. |
+| Maven says Jackson ObjectMapper missing | Read first compiler error; inspect pom dependencies and test imports. | Imported test library absent from test classpath. Declare correct dependency, then rerun tests; do not hide error by random code edits. | mvnw test reports success/count. |
+| API curl connection refused | docker compose ps; ps -ef | grep '[j]ava'; ss -lntp | grep ':8081'; inspect Spring terminal logs. | DB healthy + no Java + no listener means API stopped/failed startup. Restore API; do not open security group for localhost test. | Health returns 200/UP; POST and GET succeed. |
+| POST returns 400 | Inspect response, JSON, content type, nonblank description. | Validation rejected input as designed. | Valid POST gives 201; invalid remains 400. |
+| GET returns 404 | Check copied UUID and query DB. | ID typo/missing row; not automatically a DB outage. | Correct UUID gets 200 and same SQL row. |
+| Data missing after restart | Check volume, DB readiness/SQL, DB URL; ask whether down -v ran. | Named volume survives container recreation; deleting volume resets data. | Same UUID available through GET and SQL after API restart. |
+
+Observed API outage drill: health curl failed; Compose showed PostgreSQL healthy; process and listener checks found no Java process and no 8081 listener. Diagnosis: Spring Boot had stopped, while DB remained available. Restarted app; health returned 200/UP. This is controlled lab evidence, not a production incident.
+
+### 7.6 Ticket handoff and cleanup
+
+A useful update states symptom/user impact, scope, checks/evidence, diagnosis, action, recovery check, remaining risk/follow-up, owner, and next update. Application owner handles API behavior; platform/DevOps owns shared runtime/build automation; DBA owns database platform concerns; SRE/service on-call coordinates reliability and incident response. Escalate with evidence and a specific request.
+
+At end, stop Spring with Ctrl+C. Decide whether to stop or terminate EC2. Stop can leave EBS, public IPv4, snapshots, or other billable resources; verify AWS resources/costs. docker compose down retains named-volume rows; down -v deletes them. Process stop, container stop, EC2 stop, and EC2 termination are different actions. Keep this disposable host free of sensitive data and remove resources/credentials when no longer needed.
 ## 8. Work performed and observed evidence
 
 On a fresh Amazon Linux 2023 host, the repo was cloned. Compose plugin installed with checksum verification; env bootstrap created ignored .env; Compose config validated; PostgreSQL healthy and pg_isready accepted connections. Maven reported **2 tests, zero failures, zero errors**. Actuator returned HTTP 200 and UP. Synthetic POST returned 201 with UUID; GET returned 200 and same claim; SQL showed the row. Spring Boot was restarted with PostgreSQL still running; GET still returned the record. This proves the app reconnected/read the existing row from the still-running DB. It does not prove DB restart, host reboot, backup, or restore.
