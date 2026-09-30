@@ -327,3 +327,57 @@ At closeout, answer all of these in that day's report:
 4. Which parts were only discussed or planned and therefore still need hands-on practice?
 5. How would I explain this work in an interview without overstating scope or production ownership?
 6. What is the next resume topic, and what prerequisite from this day does it use?
+
+
+## Additional target role: Java Production Support Engineer (L2.5/L3)
+
+**Source and status:** User-shared Hyderabad job description reviewed on 2026-09-30. This is an additional interview target alongside the SRE-first roadmap. Preparation is planned; no role-specific drill has yet been completed. The listed experience band is 5–10 years and the stated compensation band is ₹11–15 LPA, below the learner's stated ₹20 LPA target. Treat it as a possible role-fit option, not a change to the primary career goal.
+
+### Is this an SRE role?
+
+It is **SRE-adjacent production/application support**, not a full SRE role based on the wording provided. Its center of gravity is L2.5/L3 support for Java/Python services: restore service, investigate incidents and defects, monitor jobs/interfaces, analyze Linux and application evidence, support releases, and reduce recurring manual work. These are valuable SRE foundations. The description does not explicitly require SLI/SLO ownership, error-budget decisions, on-call rotation design, capacity engineering, or disaster-recovery objectives. We will learn those broader SRE practices in the main roadmap and avoid claiming this JD asks for them.
+
+### JD-to-lab skill map
+
+| JD responsibility | What to learn and practice | Lab connection / interview evidence |
+|---|---|---|
+| Java/Python application incident triage | Follow a request across HTTP, application logs, process/thread health, dependencies, database, and response; distinguish symptom from cause. | Claims API path, container logs, health endpoint, database readiness and SQL checks; later add Python support automation. |
+| Linux/Unix troubleshooting | Check identity, OS, process, listener, ports, disk, memory, permissions, service state, DNS and connectivity; gather evidence before changing state. | Day 1 EC2 inventory and API-stop drill; Day 2 container and service-network checks. |
+| Monitoring, alerts, jobs and interfaces | Define what healthy means, identify missing/stale signals, check schedule/backlog/last-success, and use safe retry or replay only when idempotency is understood. | Day 3 metrics/dashboard work; later batch worker, alert triage, retry and recovery tickets. |
+| Incident, RCA and problem management | Assess impact and severity, acknowledge, communicate, mitigate, verify, preserve timeline/evidence, identify contributing causes, and track prevention actions. | Ticket/runbook format, controlled outages, troubleshooting records and interview drills. Never present a lab exercise as a real production incident. |
+| Release, change and production validation | Review the change and rollback, verify the deployed version/config, run smoke checks, compare service signals, and coordinate application/platform/DB owners. | Later CI/CD, staged rollout and rollback exercises; current health/API checks are the validation foundation. |
+| Java/Python support utilities and toil reduction | Write small tested scripts with input checks, timeouts, clear exit codes, safe defaults, useful logs and dry-run behavior. | Future Bash/Python operational tooling ticket, with before/after toil or risk measure. |
+| Cross-team AMS work | Record ticket impact, timestamps, evidence, attempted checks, owner/dependency, next action and handoff; separate app, platform, network and database fault domains. | Daily ticket and handoff templates; practice concise incident updates and escalation with evidence. |
+
+### Additional preparation checklist
+
+- Java support: JVM/process basics, startup/configuration failures, thread and heap concepts, garbage collection symptoms, stack traces, dependency timeouts and connection pools. Start with diagnosis and safe evidence collection; advanced heap-dump analysis comes later.
+- Linux operations: ps, top, free, df, du, ss, systemctl, journalctl, grep, tail, awk, curl, getent, dig, file permissions and exit codes. Know what each check can and cannot prove.
+- Python and shell: read/write a small health-check or log-summary tool, handle errors/timeouts, avoid leaking secrets, test normal and failure paths, and explain when automation is safer than a manual command.
+- Monitoring: distinguish symptom signals from diagnostic telemetry; check alert freshness, thresholds, cardinality/noise, ownership and runbook links. Dashboards support decisions; they do not themselves restore service.
+- ITSM flow: incident versus problem versus change versus service request; severity/priority, escalation, change window, approval, implementation, validation, rollback and closure notes.
+- Interview answer structure: impact → timeline/evidence → fault isolation → mitigation → recovery proof → prevention/follow-up. State clearly what was personally built or practiced and the limits of the lab evidence.
+
+### Role-specific scenario bank (planned)
+
+1. **API returns 5xx but the host is reachable:** compare health endpoint, application logs, process/listener, dependency health and recent change; isolate the failing layer before restart.
+2. **Scheduled batch has not completed:** confirm schedule and last-success timestamp, inspect logs and dependency/backlog signals, determine duplicate/replay risk, coordinate owner, then verify business-level completion.
+3. **Latency rises after release:** compare version and latency/error/pool metrics, correlate logs/traces, decide whether rollback is safer, and verify recovery against the same user-facing signal.
+4. **Disk usage alert fires:** identify filesystem and largest safe-to-inspect consumers, check log growth/rotation and impact, avoid deleting unknown files, mitigate within ownership, and add prevention.
+5. **One interface is failing while the API is healthy:** compare DNS/connectivity/TLS/authentication and remote dependency response; capture timestamps/request correlation and engage the owning team with evidence.
+6. **A green deployment has no useful monitoring:** treat deployment success and service success as separate signals; add or restore a meaningful health/SLI signal before declaring recovery.
+
+### Interview questions to rehearse
+
+- Walk me through your first 10 minutes after a Java service alert. What do you check, in what order, and why?
+- How do you distinguish a Java process failure from a port, network, database, or caller-side failure?
+- What does HTTP 200 from a health endpoint prove? What does it not prove about a batch job or business transaction?
+- A service is slow but not down. How would you use Linux, logs, database/pool evidence and monitoring to isolate the bottleneck?
+- A batch job failed halfway. What do you check before retrying it?
+- Explain incident, problem, and change management with an example of how each connects.
+- How do you make a production handoff useful to the next shift or another team?
+- Describe one repetitive support task you would automate. What guardrails and success measure would you add?
+- When is restarting a service appropriate, and what evidence and validation should surround it?
+- How do SLI/SLO and error budgets extend the operational practices in this support-focused JD?
+
+**Completion rule:** These questions and scenarios remain **planned** until rehearsed or executed and recorded in a daily ticket with evidence. The role map supplements LAB-001 onward; it does not replace the SRE-first roadmap or imply production experience from this lab.
