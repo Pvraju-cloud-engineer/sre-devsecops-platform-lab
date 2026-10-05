@@ -1,5 +1,18 @@
 # Day 3 — SRE observability: metrics, Prometheus, and Grafana
 
+## Returning after a break: restart the learning path from Day 1
+
+Do not jump straight into LAB-003. The Day 3 prework is ready, but LAB-003 is not complete. Because this is a learning rebuild, resume in order and pass each checkpoint before moving forward. Use the committed recipe on the personal repository's main branch; cloud machines and database volumes are disposable.
+
+1. **Day 1 refresh — docs/days/PROJECT_DAY_01.md (LAB-001):** begin with the fresh-host and repo setup steps. Explain each command before running it. Recreate PostgreSQL and the Spring API, run Maven tests, check health, create a synthetic record, GET it, confirm the database row, then practice the API-stopped drill. Write down what each signal proves and what it does not.
+2. **Day 1 recall gate:** close the notes and narrate the request path, Maven test limits, Compose health check/volume, API-versus-database checks, and recovery evidence. Reopen Day 1 notes and record corrections. Move on when you can rebuild and explain the path without copying commands blindly.
+3. **Day 2 refresh — docs/days/PROJECT_DAY_02.md (LAB-002):** rebuild Day 1 once from GitHub, then recreate the containerized version. Before looking at the checked-in Dockerfile, write a first draft from memory; compare it with the repo, explain every instruction, build the multi-stage image, run the API and PostgreSQL in Compose, and verify health, POST/GET, and the matching SQL row. Repeat the Docker build-tool and wrong-service-DNS troubleshooting drills; record what actually happens.
+4. **Day 2 recall gate:** explain build stage versus runtime stage, build context/.dockerignore, non-root user, container DNS (postgres:5432) versus host port (127.0.0.1:5433), dependency health, persistent volume, and Buildx evidence. Correct the Day 2 notes before proceeding.
+5. **Resume Day 3 — docs/days/DAY_03_PREWORK.md (LAB-003):** only after Day 1 and Day 2 checkpoints pass, rebuild the Day 2 baseline again, revise both days, then add metrics, Prometheus, Grafana, and the controlled scrape-target failure drill. Record the implementation in docs/days/PROJECT_DAY_03.md and mark the ticket complete only with observed evidence.
+
+**Daily rule:** keep one active day/ticket. Do not mark a rebuild, test, incident drill, or interview answer complete because the instructions were read; record a command/output or a short explanation you produced yourself. If a step fails, stop at that boundary, capture safe evidence, make one change, and verify the same signal again.
+
+
 **Ticket:** LAB-003 — Add service metrics and an operational dashboard  
 **Status:** Ready; mark Done only after tomorrow's checks and evidence.  
 **Role emphasis:** SRE first. DevOps/platform work makes the setup repeatable.
@@ -80,7 +93,8 @@ The detailed explanations remain in the existing daily reports; this prework ass
 
 ## 6. Tomorrow's rebuild — Day 2 baseline first
 
-**Branch choice:** PR #7 currently contains Day 2 on day2-closeout. Until it is merged, clone that branch. If merged, clone main. Check GitHub first so the clone includes the Dockerfile, Compose API service, Buildx installer, and Day 2 report.
+**Branch choice:** Use main. It contains the Day 2 report, Dockerfile, Compose API service, and Buildx installer. Ignore old PR #7/day2-closeout directions. After this break, follow the Day 1 → Day 2 → Day 3 restart sequence at the end of this document.
+
 
 1. Create disposable Amazon Linux 2023 EC2 with SSH restricted to your current IP, intended key, recorded region/type/storage/security group, and cleanup plan. SRE reason: know the environment and blast radius before operational changes.
 2. SSH as ec2-user. Run whoami, hostname, cat /etc/os-release, uname -m, free -h, df -h /, and nproc. These show identity, OS, architecture, memory, disk, CPU; these affect package/build behavior and troubleshooting.
@@ -164,3 +178,16 @@ A strong interview answer says exactly what you built and verified, the actual f
 - Cleanup and remaining resources checked:
 - 60-second interview explanation:
 - Reviewer/next action:
+
+
+## Returning after a break: restart the learning path from Day 1
+
+Do not jump straight into LAB-003. The Day 3 prework is ready, but LAB-003 is not complete. Because this is a learning rebuild, resume in order and pass each checkpoint before moving forward. Use the committed recipe on the personal repository's main branch; cloud machines and database volumes are disposable.
+
+1. **Day 1 refresh — docs/days/PROJECT_DAY_01.md (LAB-001):** begin with the fresh-host and repo setup steps. Explain each command before running it. Recreate PostgreSQL and the Spring API, run Maven tests, check health, create a synthetic record, GET it, confirm the database row, then practice the API-stopped drill. Write down what each signal proves and what it does not.
+2. **Day 1 recall gate:** close the notes and narrate the request path, Maven test limits, Compose health check/volume, API-versus-database checks, and recovery evidence. Reopen Day 1 notes and record corrections. Move on when you can rebuild and explain the path without copying commands blindly.
+3. **Day 2 refresh — docs/days/PROJECT_DAY_02.md (LAB-002):** rebuild Day 1 once from GitHub, then recreate the containerized version. Before looking at the checked-in Dockerfile, write a first draft from memory; compare it with the repo, explain every instruction, build the multi-stage image, run the API and PostgreSQL in Compose, and verify health, POST/GET, and the matching SQL row. Repeat the Docker build-tool and wrong-service-DNS troubleshooting drills; record what actually happens.
+4. **Day 2 recall gate:** explain build stage versus runtime stage, build context/.dockerignore, non-root user, container DNS (postgres:5432) versus host port (127.0.0.1:5433), dependency health, persistent volume, and Buildx evidence. Correct the Day 2 notes before proceeding.
+5. **Resume Day 3 — docs/days/DAY_03_PREWORK.md (LAB-003):** only after Day 1 and Day 2 checkpoints pass, rebuild the Day 2 baseline again, revise both days, then add metrics, Prometheus, Grafana, and the controlled scrape-target failure drill. Record the implementation in docs/days/PROJECT_DAY_03.md and mark the ticket complete only with observed evidence.
+
+**Daily rule:** keep one active day/ticket. Do not mark a rebuild, test, incident drill, or interview answer complete because the instructions were read; record a command/output or a short explanation you produced yourself. If a step fails, stop at that boundary, capture safe evidence, make one change, and verify the same signal again.
