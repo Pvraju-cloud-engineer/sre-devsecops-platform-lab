@@ -69,3 +69,72 @@ Try without notes. It is fine to say “I’m not sure”; bring that point to t
 ## Handoff into the project-day file
 
 After this prework, open [PROJECT_DAY_01.md](PROJECT_DAY_01.md). It is the separate build/rebuild and evidence record: environment setup, file map, command explanations, observed outputs, debugging, failure drills, interview questions and answers, cleanup, and what remains unproven. Use that file to recreate the lab step by step. Do not treat reading the prework as completing the build or a troubleshooting drill.
+
+
+## Topic-by-topic video map and mastery checks
+
+Use this as the required Day 1 video path. Work through one block at a time: watch the named section, pause, explain it in your own words, point to the matching repo file or command, then do the small practice task. The video introduces the idea; the repo and observed evidence define what we actually built.
+
+### 1. Linux host, shell, and first checks
+
+**Watch:** [Linux Commands for Beginners 01 — Learn Linux TV](https://www.youtube.com/watch?v=lvSoxOMg5_c). Use it for terminal, path, files, and command-line basics.
+
+**Learn:** the EC2 host is the remote Linux machine; SSH opens a shell as **ec2-user**; **sudo** is elevated permission; **pwd** shows location; **id** and **whoami** establish identity; **uname -m** shows CPU architecture; **free -h**, **df -h /**, and **nproc** show memory, disk, and CPU count. **ps** shows processes; **ss -lntp** shows listening TCP ports.
+
+**Connect:** these are the opening checks before installing or debugging the app. They answer “am I on the right machine, as the right user, with enough resources, and is the expected process/port present?”
+
+**Practice / mastery:** explain the output of each command from your own fresh-EC2 transcript. Given “curl cannot connect to 8081,” identify **ps** and **ss** as process/listener checks, then use curl as the application-level check.
+
+### 2. SRE, DevOps, and incident handling
+
+**Watch:** [SRE Fundamentals — Google Cloud](https://www.youtube.com/watch?v=eopc_ijIfLg). Focus 07:06–11:03 on SRE and DevOps, 11:03 onward on error budgets, and 23:57–49:55 on monitoring, change management, incidents, postmortems, and toil.
+
+**Learn:** DevOps improves delivery and shared ownership; SRE applies engineering and measurable reliability practices to operations. An incident response starts with user/service impact, establishes evidence, assigns communication and technical roles, mitigates safely, verifies recovery, and records prevention work.
+
+**Connect:** the API-stopped drill in **PROJECT_DAY_01.md** is a controlled lab fault. SRE owns clear impact/health reasoning and follow-up; the application owner helps with Java behavior; the platform/DevOps owner supports host and repeatable setup; the database owner helps distinguish database health from application health.
+
+**Practice / mastery:** say the sequence symptom/impact → baseline → hypothesis → narrow check → mitigation → verify the original signal → ticket/runbook follow-up. State that our practice lab is not a production incident and do not invent customer impact.
+
+### 3. HTTP, REST, and the Spring request path
+
+**Watch:** [What Is REST API? Explained with Examples](https://www.youtube.com/watch?v=-rNAHhgUHdY), then [Build Your First Spring Boot REST API](https://www.youtube.com/watch?v=wfj-Z9OQpCA), focusing on project structure, controller, dependencies, and tests.
+
+**Learn:** an HTTP request has method, path, headers, and sometimes a body. JSON is the request/response data format. **POST /claims** creates and normally returns 201; **GET /claims/{id}** reads and returns 200; invalid input can return 400; an unknown ID returns 404. Spring Boot starts the service; the controller maps HTTP to application behavior, validation checks input, the entity models stored data, and the repository performs persistence operations.
+
+**Connect:** trace **ClaimController → ClaimRepository → Claim → PostgreSQL**. Compare the API response with the read-only SQL query.
+
+**Practice / mastery:** draw this request path from memory; explain why the controller should not itself contain SQL. Predict the response for blank description and unknown UUID, then point to the validation/test and lookup behavior that supports your answer.
+
+### 4. Maven build, tests, and repeatability
+
+**Watch:** [Maven Tutorial for Beginners 6 — Introduction to the Build Lifecycle](https://www.youtube.com/watch?v=NwrdhG4nTgg). Focus on Maven phases and how a project recipe drives the build.
+
+**Learn:** **pom.xml** describes the project, dependencies, Java/build configuration, and plugins. The Maven Wrapper (**./mvnw**) invokes the pinned Maven version. Compile checks source; test runs automated behavior checks; package creates the artifact. A passing test proves only the behavior those tests exercise, not that a currently running server is reachable.
+
+**Connect:** inspect **services/claims-api/pom.xml** and the wrapper properties; run **./mvnw test** from the service directory. In the observed debugging history, a missing Jackson class was a compile-time dependency issue, separate from runtime connectivity.
+
+**Practice / mastery:** explain the first meaningful compiler error, name the file/dependency implicated, and tell the difference between test evidence and a live curl smoke test.
+
+### 5. PostgreSQL, relational data, and independent verification
+
+**Watch:** [PostgreSQL and SQL for Beginners](https://www.youtube.com/watch?v=qw--VYLpxG4). Focus on tables, rows, primary keys, SELECT, and connecting with psql.
+
+**Learn:** PostgreSQL is a relational database: a table stores rows; columns define fields; a primary key identifies a row. JDBC is Java’s database connectivity interface; the JDBC URL identifies host, port, and database. JPA/Hibernate maps Java entity fields to relational storage. **pg_isready** tests whether PostgreSQL is accepting connections; **SELECT** reads data. Neither check alone proves the whole user request succeeded.
+
+**Connect:** read **Claim.java** beside the **claims** table. The API runs **POST**, then the operator verifies the same synthetic UUID with a read-only SQL query.
+
+**Practice / mastery:** explain why an HTTP 201 should be checked against the database when proving persistence. Describe one reason an organization might choose PostgreSQL or another database; selection depends on workload, skills, existing platform standards, licensing, operations, and support—not a universal “best” database.
+
+### 6. Docker Compose dependency, ports, health, and persistence
+
+**Watch:** [Docker Compose beginner tutorial](https://www.youtube.com/watch?v=iOGEBj7Ozak). Focus on services, port publishing, health checks, volumes, logs, and exec.
+
+**Learn:** an image is a template, a container is a running instance, and a named volume keeps database files beyond a container replacement. In **127.0.0.1:5433:5432**, host port 5433 forwards to the container’s PostgreSQL port 5432 and binds only to host loopback. Compose health is a database readiness signal, not proof the API is healthy. **docker compose ps** shows container state; **logs** shows service output; **exec** runs a command inside a running service; **down -v** removes named volumes and their data.
+
+**Connect:** read **services/claims-api/compose.yaml** and **.env.example**. The real **.env** is local configuration and must stay ignored.
+
+**Practice / mastery:** explain what **docker compose up -d --wait** and **pg_isready** each verify. State why healthy PostgreSQL does not prove that Spring Boot is listening on 8081, and why deleting a volume is a data-destructive action.
+
+### 7. Day 1 integrated recall
+
+Close prework when, without looking at the notes, you can draw the host → HTTP → Spring controller → repository/entity → JDBC → PostgreSQL path; explain which service is a host process and which is a container; name the exact repo files; explain the checks and their limits; and describe how you would diagnose API-down/DB-healthy. Then compare your explanation with **DAY_01_TO_03_MASTERY_PLAN.md** and record weak topics before the rebuild.
