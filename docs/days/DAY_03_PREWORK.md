@@ -193,30 +193,33 @@ Do not jump straight into LAB-003. The Day 3 prework is ready, but LAB-003 is no
 **Daily rule:** keep one active day/ticket. Do not mark a rebuild, test, incident drill, or interview answer complete because the instructions were read; record a command/output or a short explanation you produced yourself. If a step fails, stop at that boundary, capture safe evidence, make one change, and verify the same signal again.
 
 
-## Video-first learning path — Days 1–3
+## Video-first learning path — exact intervals by day
 
-Use these videos to see the systems and workflows, then use the repo notes to connect them to the project. Watch the assigned sections before the lab; pause and explain each idea in your own words. Before running a command, say what it checks and what result would change your diagnosis.
+Use these bounded sections before the matching build or revision. Times are video timestamps. After each interval, close the video, explain what you learned in plain language, and point to the related repo file. Video exposure is not proof that a command or configuration works.
 
-### Day 1 — Linux host, HTTP, Spring Boot, Maven, PostgreSQL, and incident basics
+### Day 1 — Linux, SRE workflow, Spring API, Maven, PostgreSQL, Compose
 
-1. **SRE mindset and team work:** [SRE Fundamentals — Google Cloud](https://www.youtube.com/watch?v=eopc_ijIfLg). Watch 07:06–11:03 for SRE/DevOps and reliability responsibilities; 11:03 onward for error budgets; 23:57–49:55 for monitoring, change management, incident response, postmortems, and toil. Connect this to the role table and API-stopped drill in [PROJECT_DAY_01.md](PROJECT_DAY_01.md).
-2. **Spring request flow:** [Build Your First Spring Boot REST API](https://www.youtube.com/watch?v=wfj-Z9OQpCA). Focus on project structure, dependencies, controller, and testing (about 2:19–16:07). Trace its request path into this lab: ClaimController → ClaimRepository → Claim → PostgreSQL row.
-3. **Build and tests:** [Introduction to Maven and its Lifecycle](https://www.youtube.com/watch?v=gzeIvdT3Dq4). Learn compile/test/package as different lifecycle stages; map them to pom.xml, ./mvnw test, and the build error we diagnosed.
-4. **Database basics:** [PostgreSQL and SQL for Beginners](https://www.youtube.com/watch?v=qw--VYLpxG4). Watch the database/relational concepts and psql, table, insert, and select portions; practice the lab’s read-only SELECT when verifying synthetic data.
-5. **Containers and local dependencies:** [Docker Compose beginner tutorial](https://www.youtube.com/watch?v=iOGEBj7Ozak). Focus on services, ports, health checks, volumes, logs, and exec. Map each term to services/claims-api/compose.yaml and the Day 1 PostgreSQL service.
+1. [The 50 Most Popular Linux & Terminal Commands — freeCodeCamp](https://www.youtube.com/watch?v=ZtqBQ68cfJc): 00:29:43–00:49:21 (whoami, man, pwd, ls); 00:49:21–01:21:26 (cd and basic file/directory commands); 02:32:10–02:44:04 (grep, disk checks); 02:47:32–03:01:37 (ps, top, kill). Connect to EC2 inventory and the API-process outage drill.
+2. [SRE Fundamentals — Google Cloud](https://www.youtube.com/watch?v=eopc_ijIfLg): 00:07:06–00:11:03 (SRE/DevOps and teams); 00:11:03–00:23:57 (error budgets); 00:23:57–00:26:57 (monitoring); 00:41:50–00:49:55 (incident response/postmortems); 00:49:55–00:52:55 (toil). Connect to PROJECT_DAY_01.md’s ownership table and incident method.
+3. [Spring Boot Tutorial for Beginners | Full Course 2025 — Amigoscode](https://www.youtube.com/watch?v=Cw0J6jYJtzw): 00:03:20–00:14:21 (project/API/test); 00:15:35–00:22:55 (model/controller/JSON); 00:33:43–00:42:33 (JPA/configuration/troubleshooting). Trace ClaimController → ClaimRepository → Claim → PostgreSQL.
+4. [Introduction to Maven and its Lifecycle](https://www.youtube.com/watch?v=gzeIvdT3Dq4): 00:00–00:04:51. Connect compile/test/package to pom.xml and ./mvnw test.
+5. [PostgreSQL and SQL for Beginners](https://www.youtube.com/watch?v=qw--VYLpxG4): 00:03:16–00:10:53 (relational/database basics); 00:17:38–00:21:39 (psql); 00:41:37–00:55:55 (tables and constraints); 01:12:28–01:25:29 (SELECT/WHERE). Connect to the claims table and the read-only verification query.
+6. [Docker Compose Tutorial — KodeKloud](https://www.youtube.com/watch?v=iOGEBj7Ozak): 00:05:53–00:10:13 (services); 00:21:00–00:24:45 (startup dependency/network); 00:28:30–00:31:30 (troubleshooting). Connect to the Day 1 postgres service and its health check/volume configuration.
 
-### Day 2 — image construction, safe runtime, and container networking
+### Day 2 — Dockerfile, multi-stage build, Compose network, persistence
 
-1. **Dockerfile and multi-stage image:** [Docker multi-stage builds and BuildKit](https://www.youtube.com/watch?v=JofsaZ3H1qM). This is an older visual walkthrough, so verify current syntax and security guidance in the [official multi-stage build guide](https://docs.docker.com/get-started/docker-concepts/building-images/multi-stage-builds/). Explain every instruction in the lab Dockerfile.
-2. **Compose networking and operations:** Rewatch the [Docker Compose beginner tutorial](https://www.youtube.com/watch?v=iOGEBj7Ozak). Draw why a container reaches PostgreSQL as postgres:5432, while a host process uses its published host address and port. Localhost means the current network namespace.
-3. **Rebuild practice:** use [PROJECT_DAY_02.md](PROJECT_DAY_02.md) after writing a Dockerfile draft from memory. Record differences and explain .dockerignore, non-root execution, health dependencies, and named storage.
+1. [Docker Crash Course for Beginners — TechWorld with Nana](https://www.youtube.com/watch?v=pg19Z8LL06w): 00:21:36–00:29:38 (images/containers/tags); 00:32:02–00:42:50 (commands/ports/lifecycle).
+2. [Docker Tutorial for Beginners — TechWorld with Nana](https://www.youtube.com/watch?v=3c-iBn73dDE): 01:42:02–02:04:36 (write/build a Dockerfile); 02:27:26–02:45:13 (volumes).
+3. [Day 26 — Multi Stage Docker Builds — Abhishek Veeramalla](https://www.youtube.com/watch?v=yyJrZgoNal0): 00:22:45–00:25:26 (single-stage image); 00:25:26–00:30:18 (multi-stage and final image). The sample is Go-specific; transfer only the builder/runtime separation to the Java Dockerfile.
+4. [Docker Compose Tutorial — KodeKloud](https://www.youtube.com/watch?v=iOGEBj7Ozak): 00:05:53–00:10:13 (services); 00:21:00–00:24:45 (depends_on/network); 00:28:30–00:31:30 (troubleshooting). Connect the service name postgres:5432 inside the Compose network to the DB_URL in compose.yaml.
 
-### Day 3 — instrumentation, Prometheus scraping, and Grafana dashboards
+### Day 3 — application metrics, Prometheus, PromQL, Grafana dashboards
 
-1. **Application metrics path:** [Spring Boot, Micrometer, Prometheus, and Grafana walkthrough](https://www.youtube.com/watch?v=_WdIlz33FKE). Focus on Actuator (~0:59), Micrometer (~17:51), Prometheus (~21:52), and integration (~26:09). Map it to Spring exposing a metrics endpoint, then Prometheus scraping it.
-2. **Prometheus fundamentals:** [Prometheus getting started — PromLabs/Julius Volz](https://www.youtube.com/watch?v=OxZmn4svOyA). Focus on targets, scrape status, and first PromQL queries. A running Prometheus server does not prove the target is up; verify the target and actual time series.
-3. **Grafana panels:** [Grafana with Prometheus dashboard walkthrough](https://www.youtube.com/watch?v=Fpw4Rwpb160). Watch how a data source and query feed panels. Check time range, units, labels, and query when a panel is blank.
-4. Use the official references above to confirm endpoint names, metric semantics, and current configuration. Videos show the idea; the repo’s pinned files and official docs define what we run.
+1. [How to Monitor Spring Boot Application With Prometheus and Grafana — Refactor First](https://www.youtube.com/watch?v=pVdDWQQeqME): 00:00–02:27 (application and Prometheus config); 02:27–06:32 (metrics endpoint, Compose, scrape config, Prometheus UI); 08:04–09:45 (Grafana datasource and dashboard); 09:45–14:22 (queries, rate, dashboard). Connect the concepts to Actuator/Micrometer → Prometheus scrape → Grafana panel.
+2. [Introduction to the Prometheus Monitoring System — PromLabs](https://www.youtube.com/watch?v=STVMGrYIlfg): 00:16–02:56 (architecture and data model); 02:56–05:11 (time series/labels); 05:11–08:30 (exposition and PromQL introduction); 09:10–10:00 (service discovery). Connect to scrape targets, the up metric, and the labels actually exposed by our app.
+3. [Grafana Course for Beginners](https://www.youtube.com/watch?v=CjABEnRg9NI): 01:05:25–01:24:16 (UI and setup); 01:24:16–01:51:36 (data source, dashboard, query/panel). Connect to the dashboard you create; check the time range, query, labels, and units when a panel is blank.
+
+**Study rule:** after a range, draw the components and arrows from memory; write one definition, one repo connection, one operational check, and one likely failure symptom. Use official docs and actual lab evidence to confirm video examples and current configuration.
 
 ### The connection to remember
 
@@ -239,7 +242,7 @@ Use this as the required Day 3 video path after the Day 1 and Day 2 rebuild/reca
 
 ### 1. Why SRE needs metrics and how signals fit together
 
-**Watch:** [SRE Fundamentals — Google Cloud](https://www.youtube.com/watch?v=eopc_ijIfLg). Revisit 23:57–49:55 for monitoring, incident response, postmortems, and toil; revisit the SLI/SLO/error-budget explanation around 11:03 onward.
+**Watch:** [SRE Fundamentals — Google Cloud](https://www.youtube.com/watch?v=eopc_ijIfLg). Revisit 23:57–26:57 for monitoring, 41:50–49:55 for incident response/postmortems, 49:55–52:55 for toil, and 11:03–23:57 for error budgets.
 
 **Learn:** metrics are numeric measurements over time; logs are event records with detail; traces connect a request’s work across components; profiles describe where a program spends CPU or memory. Each answers a different question. Metrics can show that latency rose; logs can show the error detail; traces can show where a distributed request waited. A green metric does not by itself prove every user journey works.
 
@@ -249,7 +252,7 @@ Use this as the required Day 3 video path after the Day 1 and Day 2 rebuild/reca
 
 ### 2. Instrumentation: Actuator, Micrometer, endpoint, and metric types
 
-**Watch:** [Monitoring and Metrics for Spring: Prometheus, Grafana, Actuator](https://www.youtube.com/watch?v=_WdIlz33FKE). Focus 00:59 for Actuator, 17:51 onward for Micrometer, and 21:52–34:50 for Prometheus and the Spring/Prometheus/Grafana example.
+**Watch:** [How to Monitor Spring Boot Application With Prometheus and Grafana — Refactor First](https://www.youtube.com/watch?v=pVdDWQQeqME), 00:00–02:27 for application/config, 02:27–06:32 for metrics/scraping, and 08:04–14:22 for Grafana datasource, dashboards, and queries.
 
 **Learn:** instrumentation means the application exposes useful measurements. Spring Boot Actuator provides operational endpoints; Micrometer provides a common metrics API and registry integration; the Prometheus registry renders metrics in Prometheus text format at an endpoint. A counter increases and may reset when a process restarts; a gauge can go up or down; a histogram records observations in buckets plus count/sum, helping describe distributions such as request duration. A JVM metric describes runtime health, not necessarily business success.
 
@@ -259,7 +262,7 @@ Use this as the required Day 3 video path after the Day 1 and Day 2 rebuild/reca
 
 ### 3. Prometheus architecture and scrape model
 
-**Watch:** [Introduction to the Prometheus Monitoring System — PromLabs](https://www.youtube.com/watch?v=STVMGrYIlfg). Focus 00:16–02:56 for the system and data model, 05:11 for exposition format, 06:24 for PromQL, and 09:10 for service discovery.
+**Watch:** [Introduction to the Prometheus Monitoring System — PromLabs](https://www.youtube.com/watch?v=STVMGrYIlfg). Focus 00:16–02:56 for the system/data model, 02:56–05:11 for series/labels, 05:11–08:30 for exposition and PromQL introduction, and 09:10–10:00 for service discovery.
 
 **Learn:** Prometheus periodically pulls metrics from configured targets. A scrape config identifies a job, target address, path, and interval. Each recorded sample has a metric name, labels, timestamp, and value. **up** reports whether the last scrape of a target succeeded; it does not certify end-to-end user success. Prometheus needs network reachability to the metrics endpoint.
 
@@ -269,7 +272,7 @@ Use this as the required Day 3 video path after the Day 1 and Day 2 rebuild/reca
 
 ### 4. PromQL: select, filter, range, rate, aggregate
 
-**Watch:** [How to Build a PromQL Query — Is It Observable](https://www.youtube.com/watch?v=hvACEDjHQZE). Focus 02:39 for metric types, 09:04 for Prometheus data types, 23:36 for operators, and 25:53 onward for query examples. Use [Understanding Prometheus Histograms — PromLabs](https://www.youtube.com/watch?v=yYbXak-1hew) when learning latency distributions and histogram queries.
+**Watch:** For a short visual PromQL query demo, use [How to Monitor Spring Boot Application With Prometheus and Grafana — Refactor First](https://www.youtube.com/watch?v=pVdDWQQeqME), 09:45–14:22 for dashboard queries and rate. Then practice with the metric names your service actually exposes; keep histograms as a later extension.
 
 **Learn:** a selector chooses a metric; label matchers filter its series; a range vector selects samples over a time window; **rate(counter[5m])** estimates per-second increase over that window and handles counter resets; **sum by(label)** groups series. For histogram latency quantiles, **histogram_quantile** needs correctly aggregated bucket rates and the **le** bucket label. Query time range, scrape interval, labels, and sample availability affect results.
 
@@ -289,7 +292,7 @@ Use this as the required Day 3 video path after the Day 1 and Day 2 rebuild/reca
 
 ### 6. Grafana: data source, query, panels, dashboard purpose
 
-**Watch:** [Grafana Course for Beginners](https://www.youtube.com/watch?v=CjABEnRg9NI). Focus 1:05:25 for the UI and 1:24:16–1:51:36 for a data source, first dashboard, and query visualization. The interface in this older course may differ from today’s Grafana; use it for the concepts and verify current buttons/settings in Grafana’s official [Grafana fundamentals](https://grafana.com/tutorials/grafana-fundamentals/) tutorial.
+**Watch:** [Grafana Course for Beginners](https://www.youtube.com/watch?v=CjABEnRg9NI). Focus 01:05:25–01:24:16 for the UI/setup and 01:24:16–01:51:36 for a data source, dashboard, and query visualization. The interface in this older course may differ from today’s Grafana; use it for the concepts and verify current buttons/settings in Grafana’s official [Grafana fundamentals](https://grafana.com/tutorials/grafana-fundamentals/) tutorial.
 
 **Learn:** Grafana visualizes/query data from a configured data source; it does not create the application’s metrics. A panel combines a query, time range, visualization, units, title, and legend. A dashboard should tell an on-call engineer what changed and what to investigate, not simply display attractive charts.
 
@@ -299,7 +302,7 @@ Use this as the required Day 3 video path after the Day 1 and Day 2 rebuild/reca
 
 ### 7. Health endpoint versus SLI, SLO, and error budget
 
-**Watch:** [SRE Fundamentals — Google Cloud](https://www.youtube.com/watch?v=eopc_ijIfLg), revisiting its reliability/error-budget discussion around 11:03 onward and monitoring discussion at 23:57 onward.
+**Watch:** [SRE Fundamentals — Google Cloud](https://www.youtube.com/watch?v=eopc_ijIfLg), revisiting its reliability/error-budget discussion 11:03–23:57 and monitoring discussion 23:57–26:57.
 
 **Learn:** a health endpoint answers a bounded health-check question. An SLI is a measurement of a user-relevant service outcome, such as the fraction of valid requests that succeed or meet a latency threshold. An SLO is an agreed target over a defined window. An error budget is the allowed unreliability implied by that target. A machine health metric is not automatically an SLI, and a lab chart is not an agreed organizational SLO.
 
