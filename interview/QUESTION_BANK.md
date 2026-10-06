@@ -244,3 +244,94 @@ These are interview tasks to perform during refresh, not claims already complete
 5. Give a concise incident update: impact, evidence, current hypothesis, safe next step, recovery signal, and owner/follow-up.
 
 Mark each drill Can explain, Needs another attempt, or Not practiced after attempting it. The recorded Buildx/tool-version issue and service-name typo are real lab observations, but they are not production incidents.
+
+
+## Day 2 source-driven refresh questions — planned, not yet practiced
+
+These original prompts broaden Day 2 coverage based on Docker and SRE scenario categories. They are not claims that these failures occurred in our lab. Try answering and running a safe drill during Day 2 refresh; record what you actually test in the Day 2 report.
+
+### D02-INT-008 — Container is Up but the application is unavailable
+
+**Topics:** container process state versus application health; health checks; logs; PID/process; listener; end-to-end probes.
+
+**Question:** Compose says the API container is Up, but clients receive errors. What does Up prove? How do you isolate container, application, port, and dependency health?
+
+**Answer outline:** Up only means Docker sees the container's main process running; it does not prove the application is ready or serving correct requests. Check docker compose ps, bounded docker compose logs, configured health-check state, and the app's process/listener inside the container. Test the API from the host on the published address, then inspect DB reachability and application errors. This lab's API service has no Docker HEALTHCHECK, so Compose cannot label it healthy; we separately queried Actuator and exercised the API. Avoid claiming a failing-container drill unless one is run and recorded.
+
+**Practice commands:** docker compose ps; docker compose logs --tail=100 claims-api; docker compose exec claims-api ps -ef; curl -i http://127.0.0.1:8081/actuator/health.
+
+**Follow-ups:** What is the difference between liveness and readiness? What if the app process is alive but the health endpoint is DOWN? What check would be meaningful to the load balancer?
+
+**Sources:** [Docker health checks](https://docs.docker.com/reference/dockerfile/#healthcheck), [Docker scenario questions](https://github.com/Techikrish/devops-cloud-interview-scenarios/blob/main/docker/scenarios.md).
+
+### D02-INT-009 — Interpret container exit code 137 without jumping to OOM
+
+**Topics:** Unix signals and exit codes; OOM evidence; container inspection; host capacity; incident hypotheses.
+
+**Question:** A container exited with code 137. Is OOM definitely the cause? What evidence do you collect before restarting it?
+
+**Answer outline:** 137 is commonly 128 + 9, which indicates termination by SIGKILL. An OOM kill is one possible cause, but an operator or runtime can also send SIGKILL. Inspect container state and OOMKilled, recent Docker events/logs, configured memory limits and host memory/kernel evidence. Record the timeline and impact; avoid stating OOM as root cause until evidence supports it. Then take the smallest safe recovery action and verify the original failing signal.
+
+**Practice commands:** docker inspect --format '{{.State.ExitCode}} {{.State.OOMKilled}} {{.State.Error}}' <container>; docker events --since 30m; free -h; journalctl -k --since '30 minutes ago'. Sanitize identifiers and logs before saving evidence.
+
+**Follow-ups:** What does exit code 143 commonly indicate? How would a memory limit affect this? What monitoring signal would help distinguish app memory growth from host pressure?
+
+**Sources:** [Docker inspect](https://docs.docker.com/reference/cli/docker/inspect/), [Docker scenario questions](https://github.com/Techikrish/devops-cloud-interview-scenarios/blob/main/docker/scenarios.md).
+
+### D02-INT-010 — Explain graceful container shutdown
+
+**Topics:** SIGTERM/SIGKILL; PID 1; exec-form ENTRYPOINT; shutdown timeout; in-flight requests.
+
+**Question:** What happens when Docker stops a container? How do ENTRYPOINT form and PID 1 affect whether the Java service can shut down cleanly?
+
+**Answer outline:** Docker normally sends SIGTERM to the container's main process, waits for the configured grace period, then sends SIGKILL if it is still running. Our Dockerfile uses exec-form ENTRYPOINT to run Java as the main process, so it can receive the signal directly. A shell wrapper that does not exec the application may interfere with signal delivery. During a controlled stop, watch application logs and request behavior; do not claim graceful shutdown has been configured or measured until verified. Production also needs an adequate termination grace period and readiness removal before shutdown.
+
+**Practice commands:** docker compose stop -t 30 claims-api; docker compose logs --since=2m claims-api; docker compose ps. Re-start only after recording the expected state and verifying health.
+
+**Follow-ups:** What changes if the process ignores SIGTERM? Why can in-flight requests fail during termination? How should an orchestrator coordinate readiness and termination?
+
+**Sources:** [Docker stop](https://docs.docker.com/reference/cli/docker/container/stop/), [Dockerfile ENTRYPOINT](https://docs.docker.com/reference/dockerfile/#entrypoint), [Docker scenario questions](https://github.com/Techikrish/devops-cloud-interview-scenarios/blob/main/docker/scenarios.md).
+
+### D02-INT-011 — Diagnose disk pressure without deleting useful data
+
+**Topics:** Docker storage accounting; images/containers/build cache/volumes; safe cleanup; change control.
+
+**Question:** A build host reports no space left on device. How do you find what is consuming disk and choose safe cleanup?
+
+**Answer outline:** Establish filesystem pressure and scope first, then inspect Docker's images, containers, volumes and build-cache usage. Determine which resources are in use, who owns them, and whether volumes contain persistent data. Prefer targeted cleanup of known disposable artifacts under the lab cleanup plan. Avoid broad prune commands on shared or production systems; pruning volumes can remove database data. Verify free space and rerun the specific failed build.
+
+**Practice commands:** df -h; docker system df -v; docker ps -a; docker image ls; docker volume ls. Do not execute broad prune commands as part of this question.
+
+**Follow-ups:** Which Docker resources can a builder cache? Why is a named volume not a backup? How do you manage image retention in a registry?
+
+**Sources:** [Docker system df](https://docs.docker.com/reference/cli/docker/system/df/), [Docker scenario questions](https://github.com/Techikrish/devops-cloud-interview-scenarios/blob/main/docker/scenarios.md).
+
+### D02-INT-012 — Explain the API port exposure boundary
+
+**Topics:** loopback binding; published ports; security groups; reverse proxy/ingress; intended access path.
+
+**Question:** Why does this lab publish the API as 127.0.0.1:8081:8081? If a laptop cannot reach it, should you open the port to the internet?
+
+**Answer outline:** Binding the host side to loopback intentionally limits access to clients on the EC2 host, which suits this single-host lab. A remote laptop failing to connect is expected with that binding. Do not weaken the boundary to make the test pass; first confirm the intended architecture. In a production design, expose through an approved load balancer/ingress, TLS, authentication, and narrowly scoped network policy/security groups. Docker port publishing and host-firewall behavior must be understood together; do not assume one firewall rule alone is the security boundary.
+
+**Practice:** Read the Compose port mapping and use ss -lnt; compare a host-local curl with the intended remote path without changing security groups.
+
+**Follow-ups:** How do host port and container port differ? What role belongs to a load balancer? Which evidence distinguishes DNS, route, security-group, listener and application failures?
+
+**Sources:** [Docker Compose networking](https://docs.docker.com/compose/how-tos/networking/), [Docker published ports](https://docs.docker.com/engine/network/port-publishing/), [Docker scenario questions](https://github.com/Techikrish/devops-cloud-interview-scenarios/blob/main/docker/scenarios.md).
+
+### D02-INT-013 — Explain container log collection and secret exposure
+
+**Topics:** stdout/stderr; Docker logging; bounded log retention; image layers/build context; vulnerability scanning and CI gates.
+
+**Question:** How should a containerized application make logs available to an operations team? Where could secrets leak during an image build or troubleshooting?
+
+**Answer outline:** Prefer application logs on stdout/stderr so the container runtime can collect them; configure retention/rotation and route them to the team's central logging service. Avoid dumping full inspect output or environment values into tickets because runtime environment can contain credentials. Keep secrets out of build context and image layers; use a secret-management mechanism appropriate to the runtime and build. Add image/dependency scanning and policy gates in CI, then triage findings by severity and exploitability. Our lab's .dockerignore excludes local .env and .git, but we have not built a scanner or centralized logging pipeline yet.
+
+**Practice:** docker compose logs --tail=100 claims-api; inspect the image metadata without exposing environment values; review .dockerignore and Dockerfile. Do not print .env or commit secret output.
+
+**Follow-ups:** Why are logs on disk harder to collect in a container? Why should secrets not be passed using Docker ARG or baked into ENV? What should a security gate do with a critical finding?
+
+**Sources:** [Docker logging](https://docs.docker.com/engine/logging/), [Docker build secrets](https://docs.docker.com/build/building/secrets/), [Docker scenario questions](https://github.com/Techikrish/devops-cloud-interview-scenarios/blob/main/docker/scenarios.md).
+
+Mark each question **Not practiced** until you answer it and run/record the safe lab check. These additions extend the seven original Day 2 questions; they do not replace the report's actual evidence.
