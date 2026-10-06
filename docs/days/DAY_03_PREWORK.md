@@ -191,3 +191,43 @@ Do not jump straight into LAB-003. The Day 3 prework is ready, but LAB-003 is no
 5. **Resume Day 3 — docs/days/DAY_03_PREWORK.md (LAB-003):** only after Day 1 and Day 2 checkpoints pass, rebuild the Day 2 baseline again, revise both days, then add metrics, Prometheus, Grafana, and the controlled scrape-target failure drill. Record the implementation in docs/days/PROJECT_DAY_03.md and mark the ticket complete only with observed evidence.
 
 **Daily rule:** keep one active day/ticket. Do not mark a rebuild, test, incident drill, or interview answer complete because the instructions were read; record a command/output or a short explanation you produced yourself. If a step fails, stop at that boundary, capture safe evidence, make one change, and verify the same signal again.
+
+
+## Video-first learning path — Days 1–3
+
+Use these videos to see the systems and workflows, then use the repo notes to connect them to the project. Watch the assigned sections before the lab; pause and explain each idea in your own words. Before running a command, say what it checks and what result would change your diagnosis.
+
+### Day 1 — Linux host, HTTP, Spring Boot, Maven, PostgreSQL, and incident basics
+
+1. **SRE mindset and team work:** [SRE Fundamentals — Google Cloud](https://www.youtube.com/watch?v=eopc_ijIfLg). Watch 07:06–11:03 for SRE/DevOps and reliability responsibilities; 11:03 onward for error budgets; 23:57–49:55 for monitoring, change management, incident response, postmortems, and toil. Connect this to the role table and API-stopped drill in [PROJECT_DAY_01.md](PROJECT_DAY_01.md).
+2. **Spring request flow:** [Build Your First Spring Boot REST API](https://www.youtube.com/watch?v=wfj-Z9OQpCA). Focus on project structure, dependencies, controller, and testing (about 2:19–16:07). Trace its request path into this lab: ClaimController → ClaimRepository → Claim → PostgreSQL row.
+3. **Build and tests:** [Introduction to Maven and its Lifecycle](https://www.youtube.com/watch?v=gzeIvdT3Dq4). Learn compile/test/package as different lifecycle stages; map them to pom.xml, ./mvnw test, and the build error we diagnosed.
+4. **Database basics:** [PostgreSQL and SQL for Beginners](https://www.youtube.com/watch?v=qw--VYLpxG4). Watch the database/relational concepts and psql, table, insert, and select portions; practice the lab’s read-only SELECT when verifying synthetic data.
+5. **Containers and local dependencies:** [Docker Compose beginner tutorial](https://www.youtube.com/watch?v=iOGEBj7Ozak). Focus on services, ports, health checks, volumes, logs, and exec. Map each term to services/claims-api/compose.yaml and the Day 1 PostgreSQL service.
+
+### Day 2 — image construction, safe runtime, and container networking
+
+1. **Dockerfile and multi-stage image:** [Docker multi-stage builds and BuildKit](https://www.youtube.com/watch?v=JofsaZ3H1qM). This is an older visual walkthrough, so verify current syntax and security guidance in the [official multi-stage build guide](https://docs.docker.com/get-started/docker-concepts/building-images/multi-stage-builds/). Explain every instruction in the lab Dockerfile.
+2. **Compose networking and operations:** Rewatch the [Docker Compose beginner tutorial](https://www.youtube.com/watch?v=iOGEBj7Ozak). Draw why a container reaches PostgreSQL as postgres:5432, while a host process uses its published host address and port. Localhost means the current network namespace.
+3. **Rebuild practice:** use [PROJECT_DAY_02.md](PROJECT_DAY_02.md) after writing a Dockerfile draft from memory. Record differences and explain .dockerignore, non-root execution, health dependencies, and named storage.
+
+### Day 3 — instrumentation, Prometheus scraping, and Grafana dashboards
+
+1. **Application metrics path:** [Spring Boot, Micrometer, Prometheus, and Grafana walkthrough](https://www.youtube.com/watch?v=_WdIlz33FKE). Focus on Actuator (~0:59), Micrometer (~17:51), Prometheus (~21:52), and integration (~26:09). Map it to Spring exposing a metrics endpoint, then Prometheus scraping it.
+2. **Prometheus fundamentals:** [Prometheus getting started — PromLabs/Julius Volz](https://www.youtube.com/watch?v=OxZmn4svOyA). Focus on targets, scrape status, and first PromQL queries. A running Prometheus server does not prove the target is up; verify the target and actual time series.
+3. **Grafana panels:** [Grafana with Prometheus dashboard walkthrough](https://www.youtube.com/watch?v=Fpw4Rwpb160). Watch how a data source and query feed panels. Check time range, units, labels, and query when a panel is blank.
+4. Use the official references above to confirm endpoint names, metric semantics, and current configuration. Videos show the idea; the repo’s pinned files and official docs define what we run.
+
+### The connection to remember
+
+Day 1: HTTP request → Spring controller → repository/JPA → PostgreSQL. Day 2 packages the same application and database into separate containers, so container DNS replaces host loopback for service-to-service traffic. Day 3 adds a second path: Spring instrumentation → metrics endpoint → Prometheus scrape and time series → Grafana query and panel. Monitoring observes the application path; it does not replace user-facing health or persistence checks.
+
+### How to study before each build
+
+- Watch the assigned section once, then close it and draw the components and arrows from memory.
+- For every new word, write a plain-language definition, a repo example, the command/file that shows it, and one failure symptom.
+- Attempt recall questions without notes. Mark “not sure” honestly and bring those gaps to the build session before changing files.
+- During the lab, explain each command before running it and record actual output, exit status, and what it proves. Never copy sample output as evidence.
+- After the lab, rebuild the change from committed files. Repeat until you can predict the next check and explain why; memorize the troubleshooting reasoning, not a blind sequence.
+
+Actual execution evidence and interview answers belong in [PROJECT_DAY_03.md](PROJECT_DAY_03.md) after the work is performed. This prework is for learning before the build; it does not mark LAB-003 complete.
