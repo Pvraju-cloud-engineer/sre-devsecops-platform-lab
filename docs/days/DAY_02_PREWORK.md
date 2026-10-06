@@ -246,3 +246,19 @@ If you cannot explain one yet, reread that subsection, draw the request path, an
 ### Day 2 learning versus Day 2 implementation
 
 This section teaches the concepts before the change. The ticket remains Ready until the learner completes the recall check and starts the implementation. During the build, record the actual commands, outputs, failures, diagnosis, fix, verification, and cleanup in the Day 2 work report. Do not claim an implementation or test passed merely because it is described here.
+
+
+## Video-first prerequisite path
+
+Watch these before Day 2 implementation. Then close the video and explain the concept using this repo’s files. The video is a visual aid; use the official reference already linked in the repo for current behavior.
+
+1. [Docker Compose beginner tutorial](https://www.youtube.com/watch?v=iOGEBj7Ozak) — services, port publishing, volumes, health checks, logs, and exec. Map each item to services/claims-api/compose.yaml.
+2. [Docker multi-stage builds and BuildKit](https://www.youtube.com/watch?v=JofsaZ3H1qM) — build and runtime stages. It is an older walkthrough, so verify syntax with the [official multi-stage build guide](https://docs.docker.com/get-started/docker-concepts/building-images/multi-stage-builds/).
+3. [Dockerfile tutorial: image layers and container basics](https://www.youtube.com/watch?v=pg19Z8LL06w) — use it to visualize image, container, layer, and build context; map those terms to Dockerfile and .dockerignore.
+
+### Watch → connect → practice
+
+- Before build, draw host, API container, PostgreSQL container, Compose network, named volume, and published host ports. Label which address is for host-to-container and which is for container-to-container.
+- Explain the Dockerfile instructions in your own words before opening the checked-in file. Then compare your draft line by line with services/claims-api/Dockerfile.
+- For each Compose command in the build session, record: what it does, when you use it, expected evidence, actual output/exit code, and what that evidence does not prove.
+- Use PROJECT_DAY_02.md as the execution record. Prework prepares the concepts; the project-day file records the actual rebuild, build, tests, failure evidence, fixes, and interview answers.
