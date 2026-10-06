@@ -138,4 +138,4 @@ Use this as the required Day 1 video path. Work through one block at a time: wat
 
 ### 7. Day 1 integrated recall
 
-Close prework when, without looking at the notes, you can draw the host → HTTP → Spring controller → repository/entity → JDBC → PostgreSQL path; explain which service is a host process and which is a container; name the exact repo files; explain the checks and their limits; and describe how you would diagnose API-down/DB-healthy. Then compare your explanation with **DAY_01_TO_03_MASTERY_PLAN.md** and record weak topics before the rebuild.
+Close prework when, without looking at the notes, you can draw the host → HTTP → Spring controller → repository/entity → JDBC → PostgreSQL path; explain which service is a host process and which is a container; name the exact repo files; explain the checks and their limits; and describe how you would diagnose API-down/DB-healthy. Then compare your explanation with the Day 1 recall and mastery checks in this file and record weak topics before the rebuild.
