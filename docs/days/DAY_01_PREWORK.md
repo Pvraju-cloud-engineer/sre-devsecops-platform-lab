@@ -7,17 +7,18 @@
 
 Assume you are new to Linux operations, HTTP APIs, Java services, databases, Docker, and SRE. Learn one idea at a time. A video gives you a picture; this guide and the project file connect that picture to the actual files and commands. You do not need to memorize jargon before understanding the request path.
 
-## Video learning order
+## Video learning order — exact intervals
 
-Watch the listed sections in order. Pause after each section and explain what you saw without copying the speaker’s wording.
+Watch only the assigned ranges, in this order. Times are video timestamps (hh:mm:ss when needed). After each range, pause and explain the idea using the named file or command below. You do not need to watch every minute of a long course.
 
-1. **How SRE work fits a team:** [SRE Fundamentals — Google Cloud](https://www.youtube.com/watch?v=eopc_ijIfLg). Watch 07:06–11:03 for SRE/DevOps and reliability work; 11:03 onward for error budgets; 23:57–49:55 for monitoring, change management, incident response, postmortems, and toil. Ask: what signal tells a team users are affected, who coordinates an incident, and how does a team prevent recurrence?
-2. **How an HTTP request becomes application code:** [Build Your First Spring Boot REST API](https://www.youtube.com/watch?v=wfj-Z9OQpCA). Focus on project structure, dependencies, controller, and tests (about 2:19–16:07). Map the controller idea to ClaimController and the data path to ClaimRepository and Claim.
-3. **How Java builds are repeatable:** [Introduction to Maven and its Lifecycle](https://www.youtube.com/watch?v=gzeIvdT3Dq4). Learn that compile, test, and package are different build stages. Map Maven concepts to pom.xml, the checked-in Maven Wrapper, and ./mvnw test.
-4. **How relational data is stored and queried:** [PostgreSQL and SQL for Beginners](https://www.youtube.com/watch?v=qw--VYLpxG4). Focus on tables, rows, keys, SQL SELECT, and psql. For the lab, use synthetic data and the documented read-only query to verify persistence.
-5. **How a local dependency runs in a container:** [Docker Compose beginner tutorial](https://www.youtube.com/watch?v=iOGEBj7Ozak). Focus on services, port publishing, health checks, named volumes, logs, and exec. Map these to the PostgreSQL service in services/claims-api/compose.yaml.
+1. **Linux shell and host checks (about 59 min total):** [The 50 Most Popular Linux & Terminal Commands — freeCodeCamp](https://www.youtube.com/watch?v=ZtqBQ68cfJc): 00:29:43–00:49:21 (whoami, man, pwd, ls); 00:49:21–01:02:03 (cd basics); 02:32:10–02:44:04 (find, grep, du, df); 02:47:32–03:01:37 (ps, top, kill). Connect to the EC2 baseline, locating the repo, checking disk, and checking whether Java is running. Skip commands you are not ready to run; never copy destructive commands from a video into the lab.
+2. **SRE responsibilities and incident flow (about 34 min):** [SRE Fundamentals — Google Cloud](https://www.youtube.com/watch?v=eopc_ijIfLg): 00:07:06–00:11:03 (SRE, DevOps, team responsibilities); 00:11:03–00:23:57 (error budgets); 00:23:57–00:26:57 (monitoring); 00:30:55–00:34:00 (change management); 00:41:50–00:49:55 (incident response and postmortems); 00:49:55–00:52:55 (toil). Connect incident checks to the API-stopped drill and role table in PROJECT_DAY_01.md.
+3. **Spring REST API request path (about 32 min):** [Spring Boot Tutorial for Beginners | Full Course 2025 — Amigoscode](https://www.youtube.com/watch?v=Cw0J6jYJtzw): 00:03:20–00:14:21 (project, dependencies, API endpoint, test); 00:15:35–00:22:55 (model, controller, JSON response); 00:28:41–00:33:43 (PostgreSQL container and Compose); 00:33:43–00:42:33 (Spring Data JPA, database configuration, troubleshooting). Map to ClaimController → ClaimRepository → Claim → PostgreSQL.
+4. **Maven build lifecycle (about 5 min):** [Introduction to Maven and its Lifecycle](https://www.youtube.com/watch?v=gzeIvdT3Dq4): 00:00–00:04:51 (watch the full clip). Connect compile/test/package to pom.xml, the Maven Wrapper, and ./mvnw test. A passing test proves only the behaviors exercised by that test.
+5. **PostgreSQL and SQL (about 39 min):** [PostgreSQL and SQL for Beginners](https://www.youtube.com/watch?v=qw--VYLpxG4): 00:03:16–00:10:53 (database, relational model, SQL); 00:17:38–00:21:39 (terminal/psql); 00:41:37–00:55:55 (tables, constraints, inserts); 01:12:28–01:25:29 (SELECT, ORDER BY, WHERE). Connect to the claims table and use only the documented read-only SELECT with synthetic data.
+6. **Docker Compose and service dependencies (about 13 min):** [Docker Compose Tutorial — KodeKloud](https://www.youtube.com/watch?v=iOGEBj7Ozak): 00:00–00:01:30 (why Compose); 00:05:53–00:10:13 (Compose file and services); 00:21:00–00:24:45 (depends_on and networks); 00:28:30–00:31:30 (troubleshooting and recap). Connect to the PostgreSQL service in services/claims-api/compose.yaml. This video does not explain every health-check/volume detail; use the file and the linked official Docker docs for those.
 
-Videos are learning references, not evidence that you performed the lab. Confirm exact commands and configuration against the repository and official links in the project report.
+**After each video:** close it, explain the idea in your own words, point to the repo file/command, and answer: “What evidence would show this part is healthy, and what could still be broken?” Videos are learning aids, not evidence that you performed the lab.
 
 ## Beginner concepts to understand before opening the terminal
 
@@ -77,7 +78,7 @@ Use this as the required Day 1 video path. Work through one block at a time: wat
 
 ### 1. Linux host, shell, and first checks
 
-**Watch:** [Linux Commands for Beginners 01 — Learn Linux TV](https://www.youtube.com/watch?v=lvSoxOMg5_c). Use it for terminal, path, files, and command-line basics.
+**Watch:** [The 50 Most Popular Linux & Terminal Commands — freeCodeCamp](https://www.youtube.com/watch?v=ZtqBQ68cfJc): 00:29:43–00:49:21 for whoami/man/pwd/ls and 00:49:21–01:02:03 for cd basics. Use 02:32:10–02:44:04 for find/grep/disk checks and 02:47:32–03:01:37 for ps/top/kill.
 
 **Learn:** the EC2 host is the remote Linux machine; SSH opens a shell as **ec2-user**; **sudo** is elevated permission; **pwd** shows location; **id** and **whoami** establish identity; **uname -m** shows CPU architecture; **free -h**, **df -h /**, and **nproc** show memory, disk, and CPU count. **ps** shows processes; **ss -lntp** shows listening TCP ports.
 
@@ -87,7 +88,7 @@ Use this as the required Day 1 video path. Work through one block at a time: wat
 
 ### 2. SRE, DevOps, and incident handling
 
-**Watch:** [SRE Fundamentals — Google Cloud](https://www.youtube.com/watch?v=eopc_ijIfLg). Focus 07:06–11:03 on SRE and DevOps, 11:03 onward on error budgets, and 23:57–49:55 on monitoring, change management, incidents, postmortems, and toil.
+**Watch:** [SRE Fundamentals — Google Cloud](https://www.youtube.com/watch?v=eopc_ijIfLg). Watch 00:07:06–00:11:03 for SRE/DevOps, 00:11:03–00:23:57 for error budgets, 00:23:57–00:26:57 for monitoring, 00:30:55–00:34:00 for change management, 00:41:50–00:49:55 for incident response/postmortems, and 00:49:55–00:52:55 for toil.
 
 **Learn:** DevOps improves delivery and shared ownership; SRE applies engineering and measurable reliability practices to operations. An incident response starts with user/service impact, establishes evidence, assigns communication and technical roles, mitigates safely, verifies recovery, and records prevention work.
 
@@ -97,7 +98,7 @@ Use this as the required Day 1 video path. Work through one block at a time: wat
 
 ### 3. HTTP, REST, and the Spring request path
 
-**Watch:** [What Is REST API? Explained with Examples](https://www.youtube.com/watch?v=-rNAHhgUHdY), then [Build Your First Spring Boot REST API](https://www.youtube.com/watch?v=wfj-Z9OQpCA), focusing on project structure, controller, dependencies, and tests.
+**Watch:** [Spring Boot Tutorial for Beginners | Full Course 2025 — Amigoscode](https://www.youtube.com/watch?v=Cw0J6jYJtzw): 00:03:20–00:14:21 for project/dependencies/API/test; 00:15:35–00:22:55 for model/controller/JSON; 00:33:43–00:42:33 for JPA, database configuration, and troubleshooting.
 
 **Learn:** an HTTP request has method, path, headers, and sometimes a body. JSON is the request/response data format. **POST /claims** creates and normally returns 201; **GET /claims/{id}** reads and returns 200; invalid input can return 400; an unknown ID returns 404. Spring Boot starts the service; the controller maps HTTP to application behavior, validation checks input, the entity models stored data, and the repository performs persistence operations.
 
@@ -107,7 +108,7 @@ Use this as the required Day 1 video path. Work through one block at a time: wat
 
 ### 4. Maven build, tests, and repeatability
 
-**Watch:** [Maven Tutorial for Beginners 6 — Introduction to the Build Lifecycle](https://www.youtube.com/watch?v=NwrdhG4nTgg). Focus on Maven phases and how a project recipe drives the build.
+**Watch:** [Introduction to Maven and its Lifecycle](https://www.youtube.com/watch?v=gzeIvdT3Dq4), 00:00–00:04:51 (full clip). Connect phases to pom.xml and ./mvnw test.
 
 **Learn:** **pom.xml** describes the project, dependencies, Java/build configuration, and plugins. The Maven Wrapper (**./mvnw**) invokes the pinned Maven version. Compile checks source; test runs automated behavior checks; package creates the artifact. A passing test proves only the behavior those tests exercise, not that a currently running server is reachable.
 
@@ -117,7 +118,7 @@ Use this as the required Day 1 video path. Work through one block at a time: wat
 
 ### 5. PostgreSQL, relational data, and independent verification
 
-**Watch:** [PostgreSQL and SQL for Beginners](https://www.youtube.com/watch?v=qw--VYLpxG4). Focus on tables, rows, primary keys, SELECT, and connecting with psql.
+**Watch:** [PostgreSQL and SQL for Beginners](https://www.youtube.com/watch?v=qw--VYLpxG4): 00:03:16–00:10:53 database/SQL basics; 00:17:38–00:21:39 psql; 00:41:37–00:55:55 tables/constraints; 01:12:28–01:25:29 SELECT/WHERE.
 
 **Learn:** PostgreSQL is a relational database: a table stores rows; columns define fields; a primary key identifies a row. JDBC is Java’s database connectivity interface; the JDBC URL identifies host, port, and database. JPA/Hibernate maps Java entity fields to relational storage. **pg_isready** tests whether PostgreSQL is accepting connections; **SELECT** reads data. Neither check alone proves the whole user request succeeded.
 
@@ -127,7 +128,7 @@ Use this as the required Day 1 video path. Work through one block at a time: wat
 
 ### 6. Docker Compose dependency, ports, health, and persistence
 
-**Watch:** [Docker Compose beginner tutorial](https://www.youtube.com/watch?v=iOGEBj7Ozak). Focus on services, port publishing, health checks, volumes, logs, and exec.
+**Watch:** [Docker Compose Tutorial — KodeKloud](https://www.youtube.com/watch?v=iOGEBj7Ozak): 00:05:53–00:10:13 services; 00:21:00–00:24:45 dependencies/networks; 00:28:30–00:31:30 troubleshooting. Read the repo Compose file and official Docker docs for health-check and volume details.
 
 **Learn:** an image is a template, a container is a running instance, and a named volume keeps database files beyond a container replacement. In **127.0.0.1:5433:5432**, host port 5433 forwards to the container’s PostgreSQL port 5432 and binds only to host loopback. Compose health is a database readiness signal, not proof the API is healthy. **docker compose ps** shows container state; **logs** shows service output; **exec** runs a command inside a running service; **down -v** removes named volumes and their data.
 
