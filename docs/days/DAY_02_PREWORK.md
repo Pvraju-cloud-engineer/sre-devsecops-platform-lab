@@ -262,3 +262,107 @@ Watch these before Day 2 implementation. Then close the video and explain the co
 - Explain the Dockerfile instructions in your own words before opening the checked-in file. Then compare your draft line by line with services/claims-api/Dockerfile.
 - For each Compose command in the build session, record: what it does, when you use it, expected evidence, actual output/exit code, and what that evidence does not prove.
 - Use PROJECT_DAY_02.md as the execution record. Prework prepares the concepts; the project-day file records the actual rebuild, build, tests, failure evidence, fixes, and interview answers.
+
+
+## Topic-by-topic video map and mastery checks
+
+This is the required Day 2 video path after the no-notes Day 1 revision. Do not just play videos in the background: after each topic, close the video, teach the idea back in plain language, then connect it to **services/claims-api/Dockerfile**, **.dockerignore**, **compose.yaml**, or a command you will run. The mastery goal is to write and troubleshoot the image yourself, not to copy a completed file.
+
+### 1. Container model: image, container, build, and registry
+
+**Watch:** [Docker Tutorial for Beginners — TechWorld with Nana](https://www.youtube.com/watch?v=3c-iBn73dDE). Start with the introductory concepts, images and containers, then use the later Dockerfile and Compose sections as topic-specific review. The course chapter for Docker Compose begins around 1:29:49.
+
+**Learn:** source code and a Dockerfile are build inputs; a build produces an image made of layers; running an image creates a container with a process and writable layer. A registry stores and distributes images. A volume stores state outside a replaceable container. A container shares the host kernel and is not a full virtual machine.
+
+**Connect:** draw source → build context → Dockerfile/build stages → image tag **claims-api:day2** → API container. Separately draw PostgreSQL container → named volume. Explain why the database data does not belong in the API image.
+
+**Practice / mastery:** define image, layer, tag, digest, container, registry, process, and volume without reading. Explain what changes when a container is replaced and what should persist.
+
+### 2. Write the Dockerfile from a blank file
+
+**Watch:** continue the [TechWorld with Nana Docker beginner course](https://www.youtube.com/watch?v=3c-iBn73dDE) through its Dockerfile chapter, then watch Docker’s [Dockerfile Best Practices](https://www.youtube.com/watch?v=JofsaZ3H1qM) for build speed, image contents, and multi-stage design.
+
+**Learn and write from memory:** first write the instruction skeleton before looking at our file:
+
+    FROM ... AS build
+    WORKDIR ...
+    COPY pom.xml .
+    RUN ... dependency:go-offline
+    COPY src ./src
+    RUN ... package
+    FROM ... AS runtime
+    WORKDIR ...
+    COPY --from=build ...jar...
+    USER ...
+    EXPOSE ...
+    ENTRYPOINT [...]
+
+Then reproduce our actual Java Dockerfile and explain each line: **FROM/AS** selects a base and names a stage; **WORKDIR** sets the working directory; **COPY** copies only build-context files; **RUN** executes at image-build time; **COPY --from** transfers the JAR between stages; **--chown** sets file ownership; **USER** sets runtime identity; **EXPOSE** documents the container port but does not publish it; exec-form **ENTRYPOINT** starts Java as the main process and allows signals to reach it correctly.
+
+**Connect:** compare your draft with **services/claims-api/Dockerfile** only after you try from memory. Trace Maven/JDK in the build stage and JRE/JAR in the runtime stage. Our explicit test command is **./mvnw test**; a Docker command using **-DskipTests** is packaging evidence only, not test evidence.
+
+**Practice / mastery:** rewrite the Dockerfile without copying, then explain inputs, outputs, build-time/runtime effects, and one failure each for **COPY**, Maven package, runtime permissions, and port configuration.
+
+### 3. Multi-stage build, layers, cache, and reproducibility
+
+**Watch:** [Dockerfile Best Practices — Docker](https://www.youtube.com/watch?v=JofsaZ3H1qM). Pay attention to splitting builder and runtime stages and to ordering stable dependency inputs before frequently changing source. Use the Docker beginner course as a second explanation if layers or cache are unclear.
+
+**Learn:** Maven and a JDK are needed to compile/package, but the running Spring app needs the JRE and built JAR. Multi-stage builds keep build tools out of the final runtime image. Copying **pom.xml** and downloading dependencies before copying source can preserve a cache layer when only source changes. Cache improves build speed; it does not guarantee that dependencies are safe or current.
+
+**Connect:** point to the **build** and **runtime** stages. Explain why the final stage contains the JAR, not the repository or Maven toolchain. Review image layers with **docker history** and metadata with **docker image inspect** without exposing secrets.
+
+**Practice / mastery:** predict which layer changes when only Java source changes versus when **pom.xml** changes. Explain why the image size/security benefit must be measured and why multi-stage alone does not make an image secure.
+
+### 4. Build context and .dockerignore
+
+**Watch:** use the Dockerfile and build sections of [Docker Tutorial for Beginners — TechWorld with Nana](https://www.youtube.com/watch?v=3c-iBn73dDE). The learning check is the context boundary: what files are sent to the builder and what **COPY** can read.
+
+**Learn:** the build context is the directory Docker sends to BuildKit; paths in **COPY** are relative to that context. **.dockerignore** excludes local files from the build context. It serves a different job from **.gitignore**, which excludes files from Git tracking. Never send **.env**, credentials, **.git**, logs, or local build output to image build context unless a reviewed design requires them.
+
+**Connect:** inspect **services/claims-api/.dockerignore** and invoke **docker compose build** from the correct service directory. If a Dockerfile says **COPY src**, **src** must exist inside the selected context.
+
+**Practice / mastery:** explain why a missing source/JAR, wrong build directory, or huge context is investigated by checking the context and ignore rules before changing application code.
+
+### 5. Runtime identity, configuration, and secret handling
+
+**Watch:** revisit Docker’s [Dockerfile Best Practices](https://www.youtube.com/watch?v=JofsaZ3H1qM), especially the runtime image and reducing unnecessary contents. For this topic, inspect the lab’s **USER** instruction and **.env** flow while reading the current Docker documentation linked below.
+
+**Learn:** Linux processes run under a UID/GID. Running as a non-root user limits what a compromised application process can change. Environment configuration is supplied at container startup; secrets should not be baked into image layers, committed, printed, or copied into the build context. Compose **.env** interpolation and a container’s environment are related but distinct: Compose substitutes values into the service configuration.
+
+**Connect:** our runtime user is UID/GID **10001**. The locally generated **.env** is ignored by Git and **.dockerignore** excludes it from the build context. The Compose file passes only the variables needed by the API and database.
+
+**Practice / mastery:** explain how to inspect the configured image user with **docker image inspect** or **docker run --rm --entrypoint id**. Explain why **printenv DB_PASSWORD** is not safe evidence to paste. State that Docker group access on the EC2 host is highly privileged.
+
+### 6. Compose network, service DNS, localhost, and port mapping
+
+**Watch:** [Docker Compose and Networking — Docker](https://www.youtube.com/watch?v=rFQqiuFIjms) for the network picture, then check the current [Docker Compose networking guide](https://docs.docker.com/compose/how-tos/networking/) for present-day service-name behavior. The video is older; use it to understand the idea, not as the source for current syntax.
+
+**Learn:** containers on one Compose network can find one another using service names. The API container’s **localhost** means the API container itself, not EC2 and not PostgreSQL. The API must connect to **postgres:5432** because **postgres** is its Compose service DNS name and 5432 is the database container port. EC2 reaches PostgreSQL through the host-published **127.0.0.1:5433**. The API port mapping **127.0.0.1:8081:8081** publishes the container port only on the EC2 loopback interface.
+
+**Connect:** compare the JDBC URL in the host-mode Day 1 properties with the Compose-provided Day 2 **DB_URL**. Explain exactly why the old host URL **127.0.0.1:5433** fails inside the API container and why **postgres:5432** works there.
+
+**Practice / mastery:** draw EC2 host, two containers, Compose DNS/network, and both port mappings. For connection refused/name-resolution failures, check service name, internal port, container logs, and shared Compose network before opening any public firewall port.
+
+### 7. Health, lifecycle, persistence, and layered verification
+
+**Watch:** [Hands-on Introduction to Docker and Data Persistence with Docker Volumes](https://www.youtube.com/watch?v=bRyuhBJtJ6M). Focus 15:29 on running an image, 24:00 on **docker exec**, 26:30 on stopping/removing, 29:20 on Dockerfile, 36:40 on rebuild, and 43:17 onward on named volumes. Then use the Compose networking guide above for service reachability.
+
+**Learn:** **docker compose ps** proves container state at that moment; a health check/ **pg_isready** checks database readiness; Actuator HTTP health checks an application endpoint; POST/GET checks API behavior; SQL verifies persistence. **depends_on: condition: service_healthy** gates startup ordering but does not prevent every later database outage. **docker compose down** removes containers/network while retaining named volumes by default; **down -v** deletes named volumes and data.
+
+**Connect:** verify each layer separately: Compose service state → database readiness → API health → POST/GET → SQL row → restart/recreate and read the row again. Keep the database volume unless the exercise explicitly intends data deletion.
+
+**Practice / mastery:** given “container is Up but request fails,” name what each check proves and the next narrow check. Tell the difference between stopped, removed, recreated, unhealthy, and data deleted.
+
+### 8. Buildx / BuildKit toolchain and build failure diagnosis
+
+**Watch:** no separate video is required for the exact Buildx version mismatch observed in this lab. Use the Docker beginner course to understand the build pipeline; then read Docker’s current [multi-stage build guide](https://docs.docker.com/get-started/docker-concepts/building-images/multi-stage-builds/) and [build best practices](https://docs.docker.com/build/building/best-practices/) for authoritative syntax and behavior.
+
+**Learn:** Docker Engine runs containers; the Compose CLI plugin interprets the YAML; Buildx is the build CLI plugin that uses BuildKit for image builds. “Compose build requires buildx 0.17.0 or later” is a toolchain prerequisite failure; it is not evidence that Java source or the Dockerfile is wrong.
+
+**Connect:** the lab diagnosed this by reading **docker compose version**, **docker buildx version**, and Docker client/server versions, then installing a pinned Buildx release through a checksum-verified script. Treat downloaded binary versions/checksums as reviewed supply-chain inputs.
+
+**Practice / mastery:** when an error appears, classify it as source/test, Dockerfile/build-context, Docker daemon, Compose, or Buildx/BuildKit before changing anything. Explain why checking versions and the first meaningful error is safer than rewriting a working application.
+
+### Day 2 integrated mastery gate
+
+Before building, you should be able to draw the new topology and explain why container-to-container addressing differs from host-to-container addressing. Draft the Dockerfile from memory, name the job of every instruction, explain the build/runtime stage split, identify what .dockerignore excludes, and state how you will prove non-root runtime, database readiness, API behavior, SQL persistence, and data survival. Mark any scenario you have only discussed as **Not practiced** until you actually run it and capture safe evidence in **PROJECT_DAY_02.md**.
