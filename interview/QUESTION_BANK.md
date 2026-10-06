@@ -335,3 +335,18 @@ These original prompts broaden Day 2 coverage based on Docker and SRE scenario c
 **Sources:** [Docker logging](https://docs.docker.com/engine/logging/), [Docker build secrets](https://docs.docker.com/build/building/secrets/), [Docker scenario questions](https://github.com/Techikrish/devops-cloud-interview-scenarios/blob/main/docker/scenarios.md).
 
 Mark each question **Not practiced** until you answer it and run/record the safe lab check. These additions extend the seven original Day 2 questions; they do not replace the report's actual evidence.
+
+
+### D02-INT-014 — Diagnose CPU and memory pressure in a container
+
+**Topics:** container resource limits; CPU throttling; memory working set; host versus container metrics; safe mitigation.
+
+**Question:** A Java container is slow and intermittently restarts during a traffic increase. How do you determine whether CPU throttling, memory pressure, an application defect, or host contention is responsible?
+
+**Answer outline:** Establish user impact and the time window first. Compare latency/error changes with container CPU and memory usage, configured limits, restart count and exit state; inspect bounded application logs and host capacity. CPU throttling can cause latency without a restart; memory exhaustion may cause an OOM kill, but verify the container state and host/kernel evidence before concluding. Compare replicas or a baseline if available. Avoid raising limits blindly: check node capacity and scheduling impact, then make a reviewed, reversible adjustment or mitigate load. Repeat the same latency/health measurement after the change. No CPU/memory pressure incident has been observed in this lab; this is a planned interview drill.
+
+**Practice commands:** `docker stats --no-stream`; `docker inspect --format '{{.HostConfig.NanoCpus}} {{.HostConfig.Memory}} {{.RestartCount}} {{.State.ExitCode}} {{.State.OOMKilled}}' <container>`; `free -h`; `docker compose logs --since=10m claims-api`.
+
+**Follow-ups:** How do you distinguish CPU throttling from high application CPU? What does a memory limit protect, and what does it not protect? Which metrics and alerts would you add in Kubernetes? How would you roll back a limit change?
+
+**Sources:** [Docker resource constraints](https://docs.docker.com/engine/containers/resource_constraints/), [Docker scenario questions](https://github.com/Techikrish/devops-cloud-interview-scenarios/blob/main/docker/scenarios.md). Status: **Not practiced**.
