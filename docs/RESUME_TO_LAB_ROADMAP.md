@@ -327,3 +327,53 @@ At closeout, answer all of these in that day's report:
 4. Which parts were only discussed or planned and therefore still need hands-on practice?
 5. How would I explain this work in an interview without overstating scope or production ownership?
 6. What is the next resume topic, and what prerequisite from this day does it use?
+
+
+## Interview rounds and production readiness
+
+### Round count: prepare for skills, not a fixed sequence
+
+There is no standard number of SRE or DevOps interview rounds. Recent India-focused interview guides commonly describe about three to five stages: recruiter or screening, one or two technical rounds, and a manager/HR close. Some employers add an online assessment, live debugging, system design, or a client/project discussion; services and consulting roles may include a separate client round. Candidate reports also vary. Treat these as patterns, not a promise about any employer. Ask the recruiter for the actual sequence, duration, format, and whether coding, a take-home task, or a client panel is included.
+
+We prepare each skill area even when an employer combines several into one call:
+
+| Interview stage (names vary) | What the interviewer is checking | How our series prepares you |
+|---|---|---|
+| Recruiter / screening | Clear summary, role fit, location, notice period, experience scope, communication | A concise introduction; explain SRE as the primary track and DevOps/DevSecOps as complementary; separate verified work experience from lab practice. |
+| Technical 1 / fundamentals and resume | Whether you can explain each claimed skill and the service path, not only name tools | Daily recall; Linux, networking, Java/Spring, SQL, Docker, cloud, Git, and CI/CD questions tied to the files and commands built. |
+| Technical 2 / deep dive, practical, or live scenario | Structured diagnosis, safe command choice, automation, design judgment, and recovery verification | Timed fault drills: state impact, collect evidence, test a hypothesis, make one safe change, verify the original failure signal, and explain prevention. Add Bash/Python and architecture exercises as the lab grows. |
+| Client / project or domain discussion | Whether you can understand the client’s service, communicate impact, work across teams, and adapt your skills to their stack | Practice translating the same operating method to a new system: users and SLOs, request/dependency map, dashboards, runbooks, access boundaries, escalation, change process, and evidence. Never imply the practice lab is a client production system. |
+| Hiring manager / techno-managerial | Ownership, prioritization, on-call judgment, collaboration, learning, reliability trade-offs, and credible impact | Evidence-based stories about incidents, change risk, toil, follow-through, disagreements, and measurable results. Use real work history only for personal work claims; label lab examples as lab examples. |
+| HR / final | Motivation, expectations, logistics, and consistency | Give direct, consistent answers and ask clear questions about team ownership, shifts/on-call, training, and role expectations. |
+
+### How to answer a technical scenario
+
+1. Clarify the symptom, user impact, scope, start time, and recent changes.
+2. Draw or describe the request path and name dependencies; do not guess the failing layer.
+3. Start with read-only signals: health/SLI, logs, recent deployment, process/listener, network/DNS, dependency readiness, and database or queue state as relevant.
+4. State facts separately from hypotheses. Pick the narrowest check that can distinguish them.
+5. Choose a reversible mitigation that reduces user impact; communicate owner, risk, and next update.
+6. Verify with the same user-facing or service signal that failed, and check data integrity/dependency recovery.
+7. Record timeline, cause supported by evidence, follow-up owner, and prevention. Do not claim root cause when evidence only identifies the fault boundary.
+
+This mirrors the incident discipline used throughout the lab. Google’s incident guide frames response around coordination, communication, and control; the exact role names and escalation model depend on the organization. An SRE interview may also combine system design with troubleshooting rather than use separate named rounds, as in [Atlassian’s SRE Craft interview guide](https://www.atlassian.com/dam/jcr%3Ae1905487-0c80-4e6a-b64f-c11aa9279659/SRE%20Craft.pdf?cdnVersion=1309). For a useful operating reference, see [Google’s Incident Management Guide](https://sre.google/resources/practices-and-processes/incident-management-guide/).
+
+### First weeks after joining a production team
+
+Our goal is to make the learner useful through safe, observable work, not to encourage unsupervised production changes. On joining a team:
+
+- Learn the service owner, users, business criticality, architecture, dependencies, SLOs, support hours, escalation path, and change/incident process.
+- Obtain only approved access. Learn how secrets, customer data, audit records, and production commands are controlled; never copy them into a personal repo.
+- Read the service catalog, dashboards, alerts, runbooks, recent incident reviews, deployment history, and known problems. Ask the service owner to confirm gaps or stale instructions.
+- Shadow on-call and incident response before taking independent shifts. Practice alert acknowledgment, impact updates, handoff, escalation, and evidence capture in the team’s process.
+- Start with a low-risk ticket: reproduce in a non-production environment, add or improve a test/runbook/dashboard, review the change with its owner, deploy only through approved gates, and verify the result.
+- For an incident, follow the team’s command structure. Stabilize user impact first, communicate on cadence, preserve evidence, and coordinate with application, database, network, security, and platform owners. Do not make a risky change outside your authority.
+- Close the loop: document what changed, what was verified, unresolved risk, rollback, and a named follow-up. Reliability is shared across service and platform teams; an SRE coordinates and improves the operating system around the service rather than replacing every specialist owner.
+
+The lab builds these habits at safe scale: every ticket must name impact, owner, evidence, verification, rollback, and handoff. The [Google SRE incident guide](https://sre.google/resources/practices-and-processes/incident-management-guide/) is a reference for preparation and coordinated response, not a substitute for a new employer’s policies.
+
+### Readiness checks for our interview practice
+
+For each day’s topic, the learner should be able to: explain the idea in plain language; rebuild or modify the repo artifact; use the commands and interpret their output; troubleshoot an unfamiliar but related symptom; explain security, reliability, and cost trade-offs; and answer follow-ups without relying on a memorized script. The manager/client mock rounds should ask “what did you personally do?”, “what evidence supports that?”, “what would you do if your first hypothesis is wrong?”, and “how would you work with the owning team?”.
+
+**Source notes:** Interview round counts above are a market pattern, not a universal fact. For one current India-focused summary see [DevOps Engineer Interview Questions in India (2026)](https://knok.work/blog/devops-engineer-interview-questions-india.html); candidate-reported processes differ by company and role. Prefer the recruiter’s written schedule for a specific interview.
