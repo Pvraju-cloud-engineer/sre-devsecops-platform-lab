@@ -30,3 +30,11 @@ Each daily report is the single detailed record for that day's work. This index 
 7. SRE/DevOps role connection and a concise interview explanation.
 
 Use synthetic data only. Never add credentials, tokens, private keys, account identifiers, customer information, or employer incident details. Mark a scenario **practiced** only after running it and recording the evidence.
+
+
+## LAB-003 Day 3 files
+
+- [Prework: concepts, video references, Day 1/Day 2 rebuild gates, and acceptance criteria](../days/DAY_03_PREWORK.md)
+- [Project Day 3: rebuild record, command/evidence tables, implementation log, troubleshooting drills, and interview practice](../days/PROJECT_DAY_03.md)
+
+LAB-003 remains **Ready** until the project-day report contains actual build, scrape, dashboard, and recovery evidence.
