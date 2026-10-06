@@ -47,21 +47,9 @@ Each D02 entry has an answer outline, command/practice guidance, follow-ups, sou
 ## Daily source-coverage procedure
 
 1. Review that day's files and evidence; list changed tools and behaviors.
-2. Search mapped source categories for foundational, mid-level, and scenario prompts on those topics.
-3. Deduplicate into original stable-ID questions; do not import giant copied answer lists.
-4. Cover knowledge, command interpretation, practical file-writing, troubleshooting, trade-offs, design, ownership, and communication where relevant.
-5. Link each question to the daily report and a primary/vendor reference.
+2. Search the relevant source repositories for real question prompts and scenarios covering those topics; inspect the matching file or section, not just the repository README.
+3. For each daily question, record a traceable source map: repository, file/section, prompt pattern or concept tested, and how our original question adapts it to today's build. Label whether that source file was sampled or fully reviewed.
+4. Write original stable-ID questions and answer outlines; do not copy another repository's question or answer text wholesale.
+5. Cover knowledge, command interpretation, practical file-writing, troubleshooting, trade-offs, design, ownership, and communication where relevant. Link lab evidence and a primary/vendor reference for technical answers.
 6. Track readiness per question; revisit missed answers and rebuild the previous day before advancing.
 7. At milestones, run mock technical, troubleshooting, practical, and behavioral/manager rounds. This trains common assessment modes; it cannot predict every employer's loop.
-
-## Source links
-
-- [SRE interview categories](https://github.com/michaelkkehoe/sre-interview)
-- [SRE interview preparation and round categories](https://github.com/balajisa09/sre-interview-preparation)
-- [DevOps/cloud scenario index](https://github.com/Techikrish/devops-cloud-interview-scenarios)
-- [Docker scenario file](https://github.com/Techikrish/devops-cloud-interview-scenarios/blob/main/docker/scenarios.md)
-- [Linux/SRE scenario file](https://github.com/Techikrish/devops-cloud-interview-scenarios/blob/main/linux-sre/scenarios.md)
-- [Observability scenario file](https://github.com/Techikrish/devops-cloud-interview-scenarios/blob/main/observability/scenarios.md)
-- [DevOps interview handbook](https://github.com/hammadhaqqani/devops-interview-handbook)
-- [Google SRE book](https://sre.google/sre-book/table-of-contents/)
-- [Google SRE Workbook](https://sre.google/workbook/table-of-contents/)
