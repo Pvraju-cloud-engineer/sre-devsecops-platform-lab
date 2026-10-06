@@ -60,7 +60,7 @@ To repeat the data check, POST a synthetic claim, copy the returned ID, GET that
 
 Watch/read these before changing the repository. Take notes in your own words and answer the check questions below.
 
-1. **Dockerfile and image basics.** Watch Docker’s [Dockerfile Best Practices talk](https://www.youtube.com/watch?v=JofsaZ3H1qM). It is an older talk, so use it for concepts: build stages, image layers/cache, lean runtime images, and reducing unnecessary tools. Use current Docker docs for actual syntax.
+1. **Dockerfile and image basics.** Watch Docker’s [Day 26 — Multi Stage Docker Builds — Abhishek Veeramalla](https://www.youtube.com/watch?v=yyJrZgoNal0), 00:25:26–00:30:18. Its demo uses Go; learn the two-stage pattern and map it to Java/Maven. Use current Docker docs for syntax.
 2. **Multi-stage build.** Read Docker’s [multi-stage build guide](https://docs.docker.com/build/building/multi-stage/) and [Java container guide](https://docs.docker.com/guides/java/). Learn why a JDK/Maven builder can produce a JAR that is copied into a smaller Java runtime image. The runtime image should not contain the Maven toolchain or source tree unless explicitly needed.
 3. **Build context and exclusions.** Learn what files Docker sends to the builder and how `.dockerignore` prevents `.env`, `.git`, `target/`, logs, and local evidence from entering the build context. Read [Docker build best practices](https://docs.docker.com/build/building/best-practices/).
 4. **Compose networking.** Read [Networking in Compose](https://docs.docker.com/compose/how-tos/networking/). Services on the Compose network resolve by service name. Once the API is a container, it should connect to PostgreSQL at `postgres:5432`; `localhost` from inside the API container refers to the API container itself. Host-side tools can still use `127.0.0.1:5433` through the published host mapping.
@@ -248,13 +248,17 @@ If you cannot explain one yet, reread that subsection, draw the request path, an
 This section teaches the concepts before the change. The ticket remains Ready until the learner completes the recall check and starts the implementation. During the build, record the actual commands, outputs, failures, diagnosis, fix, verification, and cleanup in the Day 2 work report. Do not claim an implementation or test passed merely because it is described here.
 
 
-## Video-first prerequisite path
+## Video-first prerequisite path — exact intervals
 
-Watch these before Day 2 implementation. Then close the video and explain the concept using this repo’s files. The video is a visual aid; use the official reference already linked in the repo for current behavior.
+Watch the assigned ranges before the build, then close the video and explain the idea in your own words. Timestamps below are bounded start–stop points; skip the rest unless a topic remains unclear.
 
-1. [Docker Compose beginner tutorial](https://www.youtube.com/watch?v=iOGEBj7Ozak) — services, port publishing, volumes, health checks, logs, and exec. Map each item to services/claims-api/compose.yaml.
-2. [Docker multi-stage builds and BuildKit](https://www.youtube.com/watch?v=JofsaZ3H1qM) — build and runtime stages. It is an older walkthrough, so verify syntax with the [official multi-stage build guide](https://docs.docker.com/get-started/docker-concepts/building-images/multi-stage-builds/).
-3. [Dockerfile tutorial: image layers and container basics](https://www.youtube.com/watch?v=pg19Z8LL06w) — use it to visualize image, container, layer, and build context; map those terms to Dockerfile and .dockerignore.
+1. **Image, container, ports, and Docker commands:** [Docker Crash Course for Beginners — TechWorld with Nana](https://www.youtube.com/watch?v=pg19Z8LL06w): 00:21:36–00:29:38 (images, containers, tags, registry); 00:32:02–00:42:50 (commands, ports, start/stop). Connect to image tag claims-api:day2, docker ps, published host ports, and container lifecycle.
+2. **Write and build the Dockerfile:** [Docker Tutorial for Beginners — TechWorld with Nana](https://www.youtube.com/watch?v=3c-iBn73dDE): 01:42:02–02:04:36 (Dockerfile instructions, building and tagging an image). Connect each instruction to services/claims-api/Dockerfile and .dockerignore.
+3. **Multi-stage image design:** [Day 26 — Multi Stage Docker Builds — Abhishek Veeramalla](https://www.youtube.com/watch?v=yyJrZgoNal0): 00:22:45–00:25:26 (single-stage image and its size); 00:25:26–00:30:18 (multi-stage build and runtime image). The demo uses Go; learn the build-stage/final-stage idea, then map it to this Java Maven build and JRE runtime. Do not copy its Go-specific Dockerfile.
+4. **Compose services, startup order, and networking:** [Docker Compose Tutorial — KodeKloud](https://www.youtube.com/watch?v=iOGEBj7Ozak): 00:05:53–00:10:13 (service definitions); 00:21:00–00:24:45 (depends_on and networks); 00:28:30–00:31:30 (troubleshooting and recap). Connect the API to PostgreSQL at postgres:5432 inside the Compose network; host-published ports are for host-to-container traffic.
+5. **Volumes and data persistence:** [Docker Tutorial for Beginners — TechWorld with Nana](https://www.youtube.com/watch?v=3c-iBn73dDE): 02:27:26–02:45:13 (volumes and persistence). Connect to claims-db-data. Removing a container and deleting a named volume are different actions.
+
+**Health-check detail:** the Compose video is only a visual introduction. Read the postgres healthcheck and depends_on condition in compose.yaml, then run pg_isready and inspect docker compose ps. A container being “Up” does not alone prove the database is ready or the API works.
 
 ### Watch → connect → practice
 
@@ -270,7 +274,7 @@ This is the required Day 2 video path after the no-notes Day 1 revision. Do not 
 
 ### 1. Container model: image, container, build, and registry
 
-**Watch:** [Docker Tutorial for Beginners — TechWorld with Nana](https://www.youtube.com/watch?v=3c-iBn73dDE). Start with the introductory concepts, images and containers, then use the later Dockerfile and Compose sections as topic-specific review. The course chapter for Docker Compose begins around 1:29:49.
+**Watch:** [Docker Tutorial for Beginners — TechWorld with Nana](https://www.youtube.com/watch?v=3c-iBn73dDE). For the assigned sections, use the exact ranges in the video-first prerequisite path above: Dockerfile 01:42:02–02:04:36; volumes 02:27:26–02:45:13.
 
 **Learn:** source code and a Dockerfile are build inputs; a build produces an image made of layers; running an image creates a container with a process and writable layer. A registry stores and distributes images. A volume stores state outside a replaceable container. A container shares the host kernel and is not a full virtual machine.
 
@@ -280,7 +284,7 @@ This is the required Day 2 video path after the no-notes Day 1 revision. Do not 
 
 ### 2. Write the Dockerfile from a blank file
 
-**Watch:** continue the [TechWorld with Nana Docker beginner course](https://www.youtube.com/watch?v=3c-iBn73dDE) through its Dockerfile chapter, then watch Docker’s [Dockerfile Best Practices](https://www.youtube.com/watch?v=JofsaZ3H1qM) for build speed, image contents, and multi-stage design.
+**Watch:** continue the [TechWorld with Nana Docker beginner course](https://www.youtube.com/watch?v=3c-iBn73dDE) through its Dockerfile chapter, then watch [Day 26 — Multi Stage Docker Builds](https://www.youtube.com/watch?v=yyJrZgoNal0) from 00:25:26–00:30:18 for builder and runtime separation.
 
 **Learn and write from memory:** first write the instruction skeleton before looking at our file:
 
@@ -305,7 +309,7 @@ Then reproduce our actual Java Dockerfile and explain each line: **FROM/AS** sel
 
 ### 3. Multi-stage build, layers, cache, and reproducibility
 
-**Watch:** [Dockerfile Best Practices — Docker](https://www.youtube.com/watch?v=JofsaZ3H1qM). Pay attention to splitting builder and runtime stages and to ordering stable dependency inputs before frequently changing source. Use the Docker beginner course as a second explanation if layers or cache are unclear.
+**Watch:** [Docker Tutorial for Beginners — TechWorld with Nana](https://www.youtube.com/watch?v=3c-iBn73dDE), 01:42:02–02:04:36 for Dockerfile/build; [Day 26 — Multi Stage Docker Builds](https://www.youtube.com/watch?v=yyJrZgoNal0), 00:25:26–00:30:18 for build/runtime separation.
 
 **Learn:** Maven and a JDK are needed to compile/package, but the running Spring app needs the JRE and built JAR. Multi-stage builds keep build tools out of the final runtime image. Copying **pom.xml** and downloading dependencies before copying source can preserve a cache layer when only source changes. Cache improves build speed; it does not guarantee that dependencies are safe or current.
 
@@ -315,7 +319,7 @@ Then reproduce our actual Java Dockerfile and explain each line: **FROM/AS** sel
 
 ### 4. Build context and .dockerignore
 
-**Watch:** use the Dockerfile and build sections of [Docker Tutorial for Beginners — TechWorld with Nana](https://www.youtube.com/watch?v=3c-iBn73dDE). The learning check is the context boundary: what files are sent to the builder and what **COPY** can read.
+**Watch:** [Docker Tutorial for Beginners — TechWorld with Nana](https://www.youtube.com/watch?v=3c-iBn73dDE), 01:42:02–02:04:36. The learning check is the context boundary: what files are sent to the builder and what **COPY** can read.
 
 **Learn:** the build context is the directory Docker sends to BuildKit; paths in **COPY** are relative to that context. **.dockerignore** excludes local files from the build context. It serves a different job from **.gitignore**, which excludes files from Git tracking. Never send **.env**, credentials, **.git**, logs, or local build output to image build context unless a reviewed design requires them.
 
@@ -325,7 +329,7 @@ Then reproduce our actual Java Dockerfile and explain each line: **FROM/AS** sel
 
 ### 5. Runtime identity, configuration, and secret handling
 
-**Watch:** revisit Docker’s [Dockerfile Best Practices](https://www.youtube.com/watch?v=JofsaZ3H1qM), especially the runtime image and reducing unnecessary contents. For this topic, inspect the lab’s **USER** instruction and **.env** flow while reading the current Docker documentation linked below.
+**Watch:** [Day 26 — Multi Stage Docker Builds — Abhishek Veeramalla](https://www.youtube.com/watch?v=yyJrZgoNal0), 00:25:26–00:30:18 for builder/runtime separation. The example uses Go; inspect this lab’s **USER** instruction and **.env** flow, and read the current Docker documentation linked below.
 
 **Learn:** Linux processes run under a UID/GID. Running as a non-root user limits what a compromised application process can change. Environment configuration is supplied at container startup; secrets should not be baked into image layers, committed, printed, or copied into the build context. Compose **.env** interpolation and a container’s environment are related but distinct: Compose substitutes values into the service configuration.
 
@@ -335,7 +339,7 @@ Then reproduce our actual Java Dockerfile and explain each line: **FROM/AS** sel
 
 ### 6. Compose network, service DNS, localhost, and port mapping
 
-**Watch:** [Docker Compose and Networking — Docker](https://www.youtube.com/watch?v=rFQqiuFIjms) for the network picture, then check the current [Docker Compose networking guide](https://docs.docker.com/compose/how-tos/networking/) for present-day service-name behavior. The video is older; use it to understand the idea, not as the source for current syntax.
+**Watch:** [Docker Compose Tutorial — KodeKloud](https://www.youtube.com/watch?v=iOGEBj7Ozak), 00:21:00–00:24:45 for dependencies and network names. Then check the current [Docker Compose networking guide](https://docs.docker.com/compose/how-tos/networking/) for service-name behavior.
 
 **Learn:** containers on one Compose network can find one another using service names. The API container’s **localhost** means the API container itself, not EC2 and not PostgreSQL. The API must connect to **postgres:5432** because **postgres** is its Compose service DNS name and 5432 is the database container port. EC2 reaches PostgreSQL through the host-published **127.0.0.1:5433**. The API port mapping **127.0.0.1:8081:8081** publishes the container port only on the EC2 loopback interface.
 
@@ -345,7 +349,7 @@ Then reproduce our actual Java Dockerfile and explain each line: **FROM/AS** sel
 
 ### 7. Health, lifecycle, persistence, and layered verification
 
-**Watch:** [Hands-on Introduction to Docker and Data Persistence with Docker Volumes](https://www.youtube.com/watch?v=bRyuhBJtJ6M). Focus 15:29 on running an image, 24:00 on **docker exec**, 26:30 on stopping/removing, 29:20 on Dockerfile, 36:40 on rebuild, and 43:17 onward on named volumes. Then use the Compose networking guide above for service reachability.
+**Watch:** [Docker Tutorial for Beginners — TechWorld with Nana](https://www.youtube.com/watch?v=3c-iBn73dDE), 02:27:26–02:45:13 for volumes and persistence. For service reachability, use the Compose networking section above (00:21:00–00:24:45).
 
 **Learn:** **docker compose ps** proves container state at that moment; a health check/ **pg_isready** checks database readiness; Actuator HTTP health checks an application endpoint; POST/GET checks API behavior; SQL verifies persistence. **depends_on: condition: service_healthy** gates startup ordering but does not prevent every later database outage. **docker compose down** removes containers/network while retaining named volumes by default; **down -v** deletes named volumes and data.
 
