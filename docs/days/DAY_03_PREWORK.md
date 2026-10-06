@@ -231,3 +231,92 @@ Day 1: HTTP request → Spring controller → repository/JPA → PostgreSQL. Day
 - After the lab, rebuild the change from committed files. Repeat until you can predict the next check and explain why; memorize the troubleshooting reasoning, not a blind sequence.
 
 Actual execution evidence and interview answers belong in [PROJECT_DAY_03.md](PROJECT_DAY_03.md) after the work is performed. This prework is for learning before the build; it does not mark LAB-003 complete.
+
+
+## Topic-by-topic video map and mastery checks
+
+Use this as the required Day 3 video path after the Day 1 and Day 2 rebuild/recall gates above. For each topic, watch actively, pause, explain it to an imagined new on-call teammate, point to the exact config/code/query in this repo, and complete the practice prompt. A video gives a visual explanation; the repo and observed lab evidence determine what we actually built. Do not claim an SLO, alert, or production capability that the lab has not implemented and measured.
+
+### 1. Why SRE needs metrics and how signals fit together
+
+**Watch:** [SRE Fundamentals — Google Cloud](https://www.youtube.com/watch?v=eopc_ijIfLg). Revisit 23:57–49:55 for monitoring, incident response, postmortems, and toil; revisit the SLI/SLO/error-budget explanation around 11:03 onward.
+
+**Learn:** metrics are numeric measurements over time; logs are event records with detail; traces connect a request’s work across components; profiles describe where a program spends CPU or memory. Each answers a different question. Metrics can show that latency rose; logs can show the error detail; traces can show where a distributed request waited. A green metric does not by itself prove every user journey works.
+
+**Connect:** Day 3 adds metrics to the already containerized Day 2 API. SRE chooses measurements that help an on-call responder determine user impact and the next action. Application owners help define what a request success or failure means; platform/DevOps makes collection repeatable.
+
+**Practice / mastery:** for “users report slow claims,” say one question metrics can answer, one that logs answer, one that traces answer, and what remains unproven. Explain why this lab’s Prometheus metrics do not equal a full APM implementation.
+
+### 2. Instrumentation: Actuator, Micrometer, endpoint, and metric types
+
+**Watch:** [Monitoring and Metrics for Spring: Prometheus, Grafana, Actuator](https://www.youtube.com/watch?v=_WdIlz33FKE). Focus 00:59 for Actuator, 17:51 onward for Micrometer, and 21:52–34:50 for Prometheus and the Spring/Prometheus/Grafana example.
+
+**Learn:** instrumentation means the application exposes useful measurements. Spring Boot Actuator provides operational endpoints; Micrometer provides a common metrics API and registry integration; the Prometheus registry renders metrics in Prometheus text format at an endpoint. A counter increases and may reset when a process restarts; a gauge can go up or down; a histogram records observations in buckets plus count/sum, helping describe distributions such as request duration. A JVM metric describes runtime health, not necessarily business success.
+
+**Connect:** inspect the Day 3 dependency/config changes and the actual endpoint exposed by this Spring app. Before writing a query, discover the metric names and labels that really exist. Do not assume a metric name from a video is present in our app.
+
+**Practice / mastery:** explain one counter, one gauge, and one histogram example from an HTTP service. Identify whether each answers “how many?”, “what is the current value?”, or “what is the distribution?” Then inspect the app endpoint and record only metric names actually returned.
+
+### 3. Prometheus architecture and scrape model
+
+**Watch:** [Introduction to the Prometheus Monitoring System — PromLabs](https://www.youtube.com/watch?v=STVMGrYIlfg). Focus 00:16–02:56 for the system and data model, 05:11 for exposition format, 06:24 for PromQL, and 09:10 for service discovery.
+
+**Learn:** Prometheus periodically pulls metrics from configured targets. A scrape config identifies a job, target address, path, and interval. Each recorded sample has a metric name, labels, timestamp, and value. **up** reports whether the last scrape of a target succeeded; it does not certify end-to-end user success. Prometheus needs network reachability to the metrics endpoint.
+
+**Connect:** the API is inside Compose, so Prometheus must scrape the API using its Compose service DNS name and the container’s internal port/path, not the EC2-only loopback address. Trace: Spring/Micrometer endpoint → Prometheus scrape target → time-series storage → PromQL query → Grafana data source.
+
+**Practice / mastery:** explain what “target UP” means and what it does not mean. Given an empty target list, a DOWN target, or no metric samples, name the first evidence you would check: Prometheus config/reload, target URL/path, service DNS/network, endpoint response, or metric name.
+
+### 4. PromQL: select, filter, range, rate, aggregate
+
+**Watch:** [How to Build a PromQL Query — Is It Observable](https://www.youtube.com/watch?v=hvACEDjHQZE). Focus 02:39 for metric types, 09:04 for Prometheus data types, 23:36 for operators, and 25:53 onward for query examples. Use [Understanding Prometheus Histograms — PromLabs](https://www.youtube.com/watch?v=yYbXak-1hew) when learning latency distributions and histogram queries.
+
+**Learn:** a selector chooses a metric; label matchers filter its series; a range vector selects samples over a time window; **rate(counter[5m])** estimates per-second increase over that window and handles counter resets; **sum by(label)** groups series. For histogram latency quantiles, **histogram_quantile** needs correctly aggregated bucket rates and the **le** bucket label. Query time range, scrape interval, labels, and sample availability affect results.
+
+**Connect:** start with **up**, then discover the app’s real request counter/histogram names in Prometheus. Build queries from the names and labels that exist. Do not paste a query from a video and assume it maps to this service.
+
+**Practice / mastery:** hand-predict what a selector returns; write one filter by status/method if those bounded labels exist; explain why **rate** is used for counters; explain why no result can mean wrong metric/label/window rather than service outage. Create and explain one traffic query and one error/latency query only if the corresponding instrumented metrics are present.
+
+### 5. Labels, cardinality, and safe metric design
+
+**Watch:** use [Introduction to the Prometheus Monitoring System — PromLabs](https://www.youtube.com/watch?v=STVMGrYIlfg), especially 02:56–05:11 for the dimensional time-series model and metric exposition. Pair it with the [Prometheus metric type and label tutorial](https://prometheus.io/docs/tutorials/understanding_metric_types/) during prework.
+
+**Learn:** each distinct combination of metric name and label values creates a time series. Labels such as method or bounded status code are usually predictable; labels such as request ID, claim ID, user ID, or raw URL can create unbounded cardinality, raise memory/storage/query costs, and leak sensitive identifiers. Metric labels describe dimensions; they are not arbitrary log fields.
+
+**Connect:** review every label attached to application metrics before committing instrumentation. SRE and service owners agree which dimensions help an operational question while keeping cost and privacy under control; security reviews sensitive data exposure.
+
+**Practice / mastery:** classify labels **method**, **status**, **claimId**, and **rawPath** as bounded or potentially unbounded. Explain why claim IDs belong in controlled logs/traces when policy allows, not as a Prometheus label. Describe how high cardinality can affect query performance and cost.
+
+### 6. Grafana: data source, query, panels, dashboard purpose
+
+**Watch:** [Grafana Course for Beginners](https://www.youtube.com/watch?v=CjABEnRg9NI). Focus 1:05:25 for the UI and 1:24:16–1:51:36 for a data source, first dashboard, and query visualization. The interface in this older course may differ from today’s Grafana; use it for the concepts and verify current buttons/settings in Grafana’s official [Grafana fundamentals](https://grafana.com/tutorials/grafana-fundamentals/) tutorial.
+
+**Learn:** Grafana visualizes/query data from a configured data source; it does not create the application’s metrics. A panel combines a query, time range, visualization, units, title, and legend. A dashboard should tell an on-call engineer what changed and what to investigate, not simply display attractive charts.
+
+**Connect:** add Prometheus as the Grafana data source using the address reachable from the Grafana container on the Compose network. Build panels from the queries already verified in Prometheus. Keep this dashboard versioned or export its JSON as the Day 3 task specifies.
+
+**Practice / mastery:** from memory, explain the chain data source → PromQL query → panel → dashboard. Build an availability/target panel and at least one useful API traffic/error/latency panel if real samples support it. State what decision each panel helps a responder make.
+
+### 7. Health endpoint versus SLI, SLO, and error budget
+
+**Watch:** [SRE Fundamentals — Google Cloud](https://www.youtube.com/watch?v=eopc_ijIfLg), revisiting its reliability/error-budget discussion around 11:03 onward and monitoring discussion at 23:57 onward.
+
+**Learn:** a health endpoint answers a bounded health-check question. An SLI is a measurement of a user-relevant service outcome, such as the fraction of valid requests that succeed or meet a latency threshold. An SLO is an agreed target over a defined window. An error budget is the allowed unreliability implied by that target. A machine health metric is not automatically an SLI, and a lab chart is not an agreed organizational SLO.
+
+**Connect:** propose a candidate success SLI only after defining eligible requests, successful outcomes, denominator, time window, and data source. Ask the service/product owner what counts as a successful claim operation. As SRE, explain tradeoffs and report the measured evidence; do not choose a customer commitment alone.
+
+**Practice / mastery:** distinguish “Actuator says UP,” “Prometheus can scrape,” “API request succeeded,” and “99.9% of eligible requests succeeded over 30 days.” Identify which is a component signal versus a user-facing indicator and which would require an agreed SLO.
+
+### 8. Dashboard troubleshooting and responder workflow
+
+**Watch:** review the PromLabs Prometheus introduction and the Grafana dashboard/query section above. During practice, use the current repository files and official Prometheus/Grafana docs for configuration syntax.
+
+**Learn:** investigate the first failing boundary instead of assuming the dashboard is the service. Check API health and metrics endpoint; Prometheus target status and scrape error; expected metric/sample and labels; PromQL result/time range; Grafana data source health, query, and dashboard time range. A missing panel can be a query, datasource, target, or instrumentation fault.
+
+**Connect:** run only the controlled target-down drill after recording a healthy baseline. Capture the original dashboard/query/target state, break only the intended scrape path, identify where evidence changes, restore it, and prove target/samples/panel recover. SRE records detection, impact in this synthetic lab, diagnosis, mitigation, recovery verification, runbook usefulness, and prevention work. Platform/DevOps owns repeatable config; service owners validate measurement meaning.
+
+**Practice / mastery:** for “Grafana panel is blank,” name the triage order and the evidence expected at each layer. Do not say the API is down until the API signal demonstrates it. Mark scenarios not run as **Not practiced** in **PROJECT_DAY_03.md**.
+
+### Day 3 video-study exit gate
+
+Before building, without notes explain metrics versus logs/traces, Micrometer/Actuator’s role, counter/gauge/histogram, Prometheus pull/scrape/target, PromQL selector/range/rate/aggregation, label-cardinality risk, Grafana data-source/panel flow, and health versus SLI/SLO. Draw the complete request/telemetry path and state what evidence would distinguish an API outage from a monitoring outage. If any item is unclear, replay only its mapped section and teach it back before the build.
